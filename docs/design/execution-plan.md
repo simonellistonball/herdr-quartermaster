@@ -8,7 +8,7 @@ shim with merges through the executor (`shim.go`, `merge.go`,
 `quartermaster run`), and IaC applies from a clean checkout of the commit
 through the `pulumi`/`tofu` shims (`iac.go`). It designs the
 "later, enforced" phase of [autonomy-dial.md](autonomy-dial.md) (the
-credential-holding executor). TJ chose the recommendation (R) for every
+credential-holding executor). SEB chose the recommendation (R) for every
 decision; see "Decisions" at the end.
 
 ## Summary
@@ -48,7 +48,7 @@ This design builds that thing, scoped to what quartermaster needs:
    it will execute. Parsing bash is useful only for a preview that asks or
    refuses; it is never what grants permission.
 4. **Anything that can't be lowered is opaque, and opaque is class 9.** An
-   opaque step runs only with TJ's approval of its digest. Lowering is a
+   opaque step runs only with SEB's approval of its digest. Lowering is a
    convenience: credential custody does the enforcing.
 5. **v1 is thin:** merges and IaC applies, the effects at classes 4, 6 and
    7 that the dial exists for. Deploy-service provisions, messages and
@@ -120,7 +120,7 @@ type Step struct {
 ```
 
 - **The digest** is SHA-256 over the canonical JSON of the plan: sorted keys,
-  without run state. Approving a plan, whether by the dial or by TJ, binds
+  without run state. Approving a plan, whether by the dial or by SEB, binds
   to the digest. A new push changes `head_sha`, so it makes a new plan with a
   new digest that needs a new approval.
 - **Effects aren't declared by the proposer.** The executor derives each
@@ -142,7 +142,7 @@ type Step struct {
 | `github.comment` (trigger comments such as `/plan`) | 2, or the class of what the trigger runs (a table keyed by the first word) | PR head SHA | A comment carrying the marker `<!-- qm:<digest>:<step> -->` |
 | `iac.apply` (Pulumi, OpenTofu) | 6 or 7 by target; `gate plan` may raise it to 8 or 9 | Commit `rev` and expected counts. The executor plans from a clean checkout of `rev`, never from the agent's worktree, and the saved plan's digest must match: `pulumi preview --save-plan` then `pulumi up --plan`, or `tofu plan -out` then `tofu apply <planfile>` | Stack history shows an update tagged `qm:<digest>:<step>`, or a fresh plan shows no changes |
 | `deploy.provision` (a deploy service's API) | 6 or 7 by environment | Version and environment; an idempotency key derived from the digest | Provision status for that key |
-| `opaque` | 9 | None that can be checked | None, so a crash mid-step stops for TJ |
+| `opaque` | 9 | None that can be checked | None, so a crash mid-step stops for SEB |
 
 Pulumi's update plans are still experimental. Until they are stable,
 `iac.apply` on Pulumi re-runs the preview immediately before `up` and
@@ -181,7 +181,7 @@ changes:
    exactly the existing `autonomy check`.
 4. Record a `check` journal record with the digest.
 
-A plan that passes is **approved by the dial**. One that fails goes to TJ as
+A plan that passes is **approved by the dial**. One that fails goes to SEB as
 a `needs_me` with the digest, the class and a one-screen rendering of the
 plan; `quartermaster plan approve <digest>` approves it. An approval expires
 (default 1 hour), and before every step the executor rechecks the level,
@@ -200,7 +200,7 @@ different beads in parallel.
 `journal.jsonl` so the digest and report see it. These are the events:
 
 ```
-checked(class, level, policy_rev) → approved(by: dial|TJ, expires)
+checked(class, level, policy_rev) → approved(by: dial|SEB, expires)
   → intent(step i, attempt n) → outcome(step i: ok|failed|unknown, evidence)
   → … → done | failed | needs_me | expired
 ```
@@ -226,7 +226,7 @@ automatically. That is the honest form of "durable" here.
 
 **Results go back to the agent** as the shim's exit status and output, so a
 worker running `gh pr merge` sees an ordinary result. A plan that is waiting
-on TJ exits nonzero with the digest and "waiting for approval:
+on SEB exits nonzero with the digest and "waiting for approval:
 `quartermaster plan status <digest>`".
 
 ## Integration: routing workers through it, and moving credentials out
@@ -265,7 +265,7 @@ There are two things about S2 that are easy to get wrong:
   since both need `contents: write`. The separation comes from rulesets on
   the default branch, which apply to merges through the API too. Setting
   them is an admin change on each repo (class 8 by the ladder, so it's
-  TJ's). Approving a PR, which needs `pull_requests: write`, can't be
+  SEB's). Approving a PR, which needs `pull_requests: write`, can't be
   separated from commenting either. It stays advisory until the agents'
   token loses `pull_requests: write` and comments move to the executor.
 - **A separate Unix user is the real boundary.** If the executor runs as
@@ -306,14 +306,14 @@ mechanisms and `mvdan.cc/sh`.
 |---|---|---|---|
 | P0 | The census above, committed as `scripts/census.py`, rerunnable | Done in this PR; about 60 lines | Picks the v1 op set from data |
 | **P1 (v1)** | `Plan`/`Step`, digest, op table for `github.pr.merge`/`automerge` and `iac.apply` (Pulumi, OpenTofu); `plan check|approve|status|resume`; `quartermaster executor` with per-bead sockets, intent/outcome events, probes and resume; the `gh`/`pulumi`/`tofu` shims placed by `dispatch` (anything not in the table passes through to the real binary); journal and digest integration | About 1,800 lines of Go with tests; 4 PRs (IR and check, executor and durability, shims and dispatch, IaC apply) | Every merge and apply on one checked, journaled, resumable path, with applies from a clean `rev` instead of the agent's worktree. Still advisory (S1) |
-| P2 | Custody for GitHub and cloud (S2): the executor as its own Unix user, a GitHub App, rulesets on the repos it covers, split cloud roles; "enforced" in `autonomy level` | About 400 lines plus setup TJ runs (App creation, rulesets, IAM roles: class 8–9 steps) | **The dial is enforced for merges and applies** |
+| P2 | Custody for GitHub and cloud (S2): the executor as its own Unix user, a GitHub App, rulesets on the repos it covers, split cloud roles; "enforced" in `autonomy level` | About 400 lines plus setup SEB runs (App creation, rulesets, IAM roles: class 8–9 steps) | **The dial is enforced for merges and applies** |
 | P3 | The executor's MCP server; `deploy.provision`, and chat, issue-tracker and deploy-service writes, through it with its own tokens; connector write tools denied to workers (S3) | About 600 lines | Messages and provisions enforced |
-| P4 | `PreToolUse` preview with `mvdan.cc/sh`: early refusals with reasons, and the plan rendered in TJ's approval | About 300 lines | Fewer wasted turns, better approval screens |
+| P4 | `PreToolUse` preview with `mvdan.cc/sh`: early refusals with reasons, and the plan rendered in SEB's approval | About 300 lines | Fewer wasted turns, better approval screens |
 | Later, maybe | `helm`/`kubectl`/`aws` op tables; CaMeL-style provenance; DBOS if plans need timers; a general plan interpreter only if the census shows workers need effects the shims can't see | — | — |
 
-## Decisions for TJ
+## Decisions for SEB
 
-The options as they were put to TJ; (R) is the recommendation. The outcome
+The options as they were put to SEB; (R) is the recommendation. The outcome
 is in "Decisions" at the end.
 
 ### E1. How wide the IR is
@@ -361,7 +361,7 @@ is in "Decisions" at the end.
 - **(R) a.** Approval binds to the plan digest and expires after 1 hour.
   The level, budget and preconditions are rechecked before every step, and
   a new head or a new IaC plan means a new digest.
-- b. Approval binds to the bead and op, so TJ approves "merges on this
+- b. Approval binds to the bead and op, so SEB approves "merges on this
   bead" once. Fewer prompts, but an approval no longer says what it
   approved.
 
@@ -384,7 +384,7 @@ is in "Decisions" at the end.
 
 ## Decisions
 
-2026-11-08, TJ: **all R** on E1–E8.
+2026-11-08, SEB: **all R** on E1–E8.
 
 - **E1** typed operations for credentialed effects only; anything that
   can't be lowered is opaque, class 9. No general bash or TypeScript

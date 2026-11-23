@@ -94,7 +94,7 @@ type digestState struct {
 	Beads map[string]Section  `json:"beads"`
 	PRs   map[string]DigestPR `json:"prs"`
 	// Auto is how many AUTO: notes each open bead had, to tell which steps
-	// its worker took without TJ since.
+	// its worker took without SEB since.
 	Auto map[string]int `json:"auto,omitempty"`
 }
 
@@ -365,7 +365,7 @@ func buildDigest(in digestInputs, prev digestState, prefixes []string, now time.
 }
 
 // autoChanges are the AUTO: notes added since the last digest, so every step
-// a worker took without TJ is in front of them once. Notes have no
+// a worker took without SEB is in front of them once. Notes have no
 // timestamps: what is new is what lies past the last count. The first digest
 // has nothing to compare with, so it reports nothing.
 func autoChanges(prev digestState, beads []Bead) []autoStep {
@@ -586,7 +586,7 @@ func (d Digest) headline() string {
 }
 
 // quiet is the line that tells a quiet digest from a broken one: whether
-// anything needed TJ, and how much ran without them.
+// anything needed SEB, and how much ran without them.
 func (d Digest) quiet() string {
 	s := "nothing needed you"
 	if n := d.count(SecNeedsYou); n > 0 {

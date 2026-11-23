@@ -1,12 +1,12 @@
-# Autonomous mode: carry a bead to done without TJ, except critical operations
+# Autonomous mode: carry a bead to done without SEB, except critical operations
 
-Status: **accepted** (2026-10-28) and implemented. TJ chose the
+Status: **accepted** (2026-10-28) and implemented. SEB chose the
 recommendation (R) for each of D1–D5 and adopted the standing authorization;
 see "Decisions" at the end. Linear: INF-2126.
 
 ## Summary
 
-On INF-2119, TJ was the gate at almost every step: needs_me questions the
+On INF-2119, SEB was the gate at almost every step: needs_me questions the
 worker already had a recommendation for, "go step N" between staged rollout
 steps whose checks had passed, merges, and clean provision applies. Autonomous
 mode lets a worker on an opted-in bead **go ahead on its own recommendation**
@@ -16,9 +16,9 @@ critical operations**, always.
 The main design choice: **the worker decides, not the ticker or the
 coordinator.** Today a ticker message "approves nothing", and that stays true.
 Autonomy is a standing grant written into the worker's brief at dispatch,
-which TJ starts. The worker reads the grant, checks it before each step it
+which SEB starts. The worker reads the grant, checks it before each step it
 takes on its own, and records what it did. No automated message ever acts as
-TJ's answer, so none can be spoofed into one.
+SEB's answer, so none can be spoofed into one.
 
 ## What gates exist, and which this can remove
 
@@ -29,10 +29,10 @@ TJ's answer, so none can be spoofed into one.
 | Merge once approved and green | quartermaster rules + GitHub | **Yes**: auto-merge exists; add stacked PRs |
 | Provision/deploy apply | quartermaster rules | **Yes**, only when the preview passes the critical check |
 | Installing a merged herdr-quartermaster PR (pull, build, ticker restart) | quartermaster rules | **Yes**, for beads in herdr-quartermaster only (see "Self-install") |
-| `/plan-…` comment triggers on TJ's own PRs | quartermaster rules | **Yes** (a comment on our own PR) |
+| `/plan-…` comment triggers on SEB's own PRs | quartermaster rules | **Yes** (a comment on our own PR) |
 | Required human review (org ruleset) | org policy | **No.** Never `/sneaky-approve` or bot self-approval. Radar approve mode (INF-2114) is the legitimate route |
 | Claude Code permission prompts, auto-mode classifier | Claude Code | **No.** Never answered or bypassed; see "Standing authorization" |
-| TJ-only RUN commands (SSO/browser login, secret reads/writes) | TJ | **No**: still `RUN:` + needs_me |
+| SEB-only RUN commands (SSO/browser login, secret reads/writes) | SEB | **No**: still `RUN:` + needs_me |
 
 **Muse (`--agent muse`).** The bead asked whether Muse workers avoid the
 classifier. Choosing an agent kind *because* it lacks a safety gate is a way
@@ -54,9 +54,9 @@ These always go to needs_me, autonomous or not:
 5. Anything Claude Code blocks or prompts for.
 6. Anything the worker is unsure about. **Unsure means critical.**
 
-## Decisions (TJ chose R for each)
+## Decisions (SEB chose R for each)
 
-The options as they were put to TJ. The outcome and how the build differs are in "Decisions" at the end.
+The options as they were put to SEB. The outcome and how the build differs are in "Decisions" at the end.
 
 ### D1. Where the policy lives (config shape)
 
@@ -110,7 +110,7 @@ The options as they were put to TJ. The outcome and how the build differs are in
   2. A Linear comment for milestones only (a decision, an apply, a merge), not
      every step, which matches the existing Linear convention.
   3. A line in the hourly digest and in `quartermaster report`, listing each
-     bead's AUTO notes since the last digest, so TJ can review them in one place.
+     bead's AUTO notes since the last digest, so SEB can review them in one place.
 - b. bd notes only.
 
 ### D4. Kill switch
@@ -124,7 +124,7 @@ The options as they were put to TJ. The outcome and how the build differs are in
     step, and to stop to needs_me if it fails. A worker that is already running
     picks up the switch at its next step, with no restart.
   - The ticker also shows an `auto` marker on the bead's sidebar/board row, so
-    TJ can see which threads run without TJ.
+    SEB can see which threads run without SEB.
 - b. Global switch only.
 
 ### D5. Stacked PRs and merging
@@ -136,14 +136,14 @@ The options as they were put to TJ. The outcome and how the build differs are in
   and checks. If a ruleset blocks auto-merge, it uses
   `gh pr merge --squash --match-head-commit <sha>` after the ticker reports
   "ready to merge", so it can't merge a head commit nobody reviewed.
-- b. Leave stacks to TJ.
+- b. Leave stacks to SEB.
 
-## Standing authorization TJ can add to CLAUDE.md
+## Standing authorization SEB can add to CLAUDE.md
 
 Claude Code's permission prompts and the auto-mode classifier judge each action
 against what the user has authorized. Quartermaster can't and won't answer
-them. What TJ *can* do is state the standing authorization explicitly, so that
-routine autonomous steps on opted-in beads are clearly within what TJ asked
+them. What SEB *can* do is state the standing authorization explicitly, so that
+routine autonomous steps on opted-in beads are clearly within what SEB asked
 for. Proposed wording for `~/.claude/CLAUDE.md`:
 
 > ## Autonomous beads
@@ -177,10 +177,10 @@ for. Proposed wording for `~/.claude/CLAUDE.md`:
 
 ## Decisions
 
-2026-10-28, TJ: **all R** (D1–D5 as recommended), and yes to the CLAUDE.md
+2026-10-28, SEB: **all R** (D1–D5 as recommended), and yes to the CLAUDE.md
 standing authorization. That wording goes into `~/.claude/CLAUDE.md` only
 after `autonomy check` and `gate plan` are merged and installed. If the
-classifier blocks that edit, TJ gets a RUN: to make it.
+classifier blocks that edit, SEB gets a RUN: to make it.
 
 Where the build is more specific than the recommendation:
 
@@ -195,14 +195,14 @@ Where the build is more specific than the recommendation:
   is autonomous at dispatch, judged by config and label but not the stop file,
   so turning autonomy back on reaches the worker. Removing the label, or
   `autonomy off`, takes effect at the worker's next check.
-- **Mid-flight grant and revoke** (2026-10-29, backend-xoc1). TJ wanted to
+- **Mid-flight grant and revoke** (2026-10-29, backend-xoc1). SEB wanted to
   turn autonomy on and off at any stage. `quartermaster autonomy grant <bead>`
   adds `autonomous`, removes `supervised`, records an `AUTO:` note, and sends
   the worker the brief's grant text behind the tag
-  `[quartermaster autonomy: granted by TJ]`. `revoke` does the reverse and
+  `[quartermaster autonomy: granted by SEB]`. `revoke` does the reverse and
   tells the worker it is supervised. The board's `U` key runs either.
-  - Trust: the grant is TJ-initiated (TJ runs it, or the coordinator does on
-    TJ's explicit word). The ticker never grants; it only relays a notice TJ
+  - Trust: the grant is SEB-initiated (SEB runs it, or the coordinator does on
+    SEB's explicit word). The ticker never grants; it only relays a notice SEB
     queued. Every brief says a mid-flight grant counts only while
     `autonomy check` passes, so a forged notice grants nothing: the labels
     are the grant, as at dispatch.
@@ -210,10 +210,10 @@ Where the build is more specific than the recommendation:
     worker. Otherwise it waits as `<agent>.autonomy` in the outbox, one per
     agent (a revoke replaces a queued grant), and the ticker sends it once
     the worker is ready, after any queued brief. A revoke waits out
-    `needs_me`, where typing would read as TJ's answer; a grant doesn't, so
+    `needs_me`, where typing would read as SEB's answer; a grant doesn't, so
     an idle needs_me worker can take its recommendation. An open bead gets
     the grant in its dispatch brief, and dispatch drops any older notice.
-- **Self-install** (2026-10-29, backend-ivi2). TJ let an autonomous bead in
+- **Self-install** (2026-10-29, backend-ivi2). SEB let an autonomous bead in
   herdr-quartermaster install its own merged PR, which backend-xoc1 had
   already done without a rule. `autonomy check <id> --action install` passes
   only for a bead whose repo is herdr-quartermaster (by the repo path's base
@@ -224,7 +224,7 @@ Where the build is more specific than the recommendation:
   nothing leaves the machine, and a bad build is undone by checking out the
   previous commit and building again. Other repos' installs and deploys still
   go through apply and `gate plan`, and supervised beads still leave the
-  install to TJ as a `RUN:`.
+  install to SEB as a `RUN:`.
 - **D4 on worker hosts.** The stop file lives in the desktop's state dir. A
   worker on another host whose image has no `quartermaster` binary fails the
   check (the command is missing), so it never acts on its own. Autonomy on

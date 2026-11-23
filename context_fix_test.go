@@ -80,13 +80,13 @@ func TestCoordinatorGuidePointsAtCheck(t *testing.T) {
 		"a question of taste or voice, involves other people",
 		"it never widens a task or\n  authorizes an action, at any level",
 		"A classifier denial (a prompt counting down to an\n    automatic deny) is class 9",
-		"--action merge` passes; otherwise tell TJ",
+		"--action merge` passes; otherwise tell SEB",
 	} {
 		if !strings.Contains(g, want) {
 			t.Errorf("guide missing %q", want)
 		}
 	}
-	for _, gone := range []string{"outside messages, money or approving a PR", "wait for TJ's go-ahead", "only on TJ's go-ahead", "autonomy grant|revoke", "never answer it for TJ"} {
+	for _, gone := range []string{"outside messages, money or approving a PR", "wait for SEB's go-ahead", "only on SEB's go-ahead", "autonomy grant|revoke", "never answer it for SEB"} {
 		if strings.Contains(g, gone) {
 			t.Errorf("guide still says %q", gone)
 		}

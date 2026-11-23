@@ -471,7 +471,7 @@ func (t Ticker) once(st *TickerState) error {
 		t.relaunch(th, &snap, relaunch[agentName(id)], now)
 		for _, e := range out.Events {
 			// A parsable approval prompt's event carries its tap links, so
-			// what the coordinator relays to TJ is tappable as it stands;
+			// what the coordinator relays to SEB is tappable as it stands;
 			// a needs_me OPTIONS question's event carries its own.
 			if e.Kind == EventNeedsYou && th.Prompt != nil {
 				e.Summary += t.tapEventSuffix(th)
@@ -539,7 +539,7 @@ func (t Ticker) launchMismatch(threads []Thread) map[string]bool {
 	out := map[string]bool{}
 	for _, th := range threads {
 		a := th.Agent
-		// A needs_me worker waits on TJ, and typing /exit into it would read as
+		// A needs_me worker waits on SEB, and typing /exit into it would read as
 		// an answer; it relaunches once answered and idle again.
 		if a == nil || !agentReady(a) || th.Bead.Status == StatusNeedsMe {
 			continue
@@ -588,7 +588,7 @@ func (t Ticker) relaunch(th Thread, snap *Snapshot, due bool, now time.Time) {
 		}
 		// The relaunch carries out a level change already made, so a lowered
 		// level must not block it.
-		if _, err := resume(t.cfg, t.herdr, []string{id}, "", "TJ"); err != nil {
+		if _, err := resume(t.cfg, t.herdr, []string{id}, "", "SEB"); err != nil {
 			t.log.Printf("relaunch %s: %v", id, err)
 			_ = t.beads.Note(id, "quartermaster could not relaunch the worker "+mode+" bypass args after it exited: "+err.Error()+"; `quartermaster resume "+id+"`")
 			return

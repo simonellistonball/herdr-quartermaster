@@ -307,7 +307,7 @@ func TestExecutorUnknownOutcome(t *testing.T) {
 	if got := f.kinds(); !slices.Equal(got, []string{"intent 1/1", "outcome 1 unknown", "outcome 1 ok", "done"}) {
 		t.Errorf("events %v", got)
 	}
-	// Unknown and never there: retried up to the limit, then TJ.
+	// Unknown and never there: retried up to the limit, then SEB.
 	f = newExecFixture(t)
 	f.r.doErr, f.r.skip = fmt.Errorf("%w: timeout", errUnknown), true
 	f.check(mergePlan("b-1"))
@@ -337,8 +337,8 @@ func TestExecutorRechecksBeforeEachStep(t *testing.T) {
 	if len(f.asked) != 1 || !strings.Contains(f.asked[0], "above b-1's level 3") {
 		t.Errorf("asked %q", f.asked)
 	}
-	// TJ approves it: it goes on from step 2, above the level.
-	out, err := (&planCLI{t: t, cfg: f.x.cfg, bead: f.bead}).run("TJ", 0, "approve", f.digest)
+	// SEB approves it: it goes on from step 2, above the level.
+	out, err := (&planCLI{t: t, cfg: f.x.cfg, bead: f.bead}).run("SEB", 0, "approve", f.digest)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,7 +346,7 @@ func TestExecutorRechecksBeforeEachStep(t *testing.T) {
 		t.Errorf("approve doesn't say how to continue:\n%s", out)
 	}
 	if kind := f.runPlan(); kind != planDone || f.r.calls() != 2 {
-		t.Errorf("after TJ: %s, %d calls: %v", kind, f.r.calls(), f.kinds())
+		t.Errorf("after SEB: %s, %d calls: %v", kind, f.r.calls(), f.kinds())
 	}
 
 	// A closed bead stops it.
@@ -456,15 +456,15 @@ func TestExecutorSockets(t *testing.T) {
 	if err := planRun([]byte(mergePlan("b-2")), io.Discard); err == nil || !strings.Contains(err.Error(), "on b-1's socket") {
 		t.Errorf("plan for b-2 on b-1's socket: %v", err)
 	}
-	// Above the level: waiting for TJ, nothing run.
+	// Above the level: waiting for SEB, nothing run.
 	f.bead.Labels = []string{"autonomy:3"}
 	calls := f.r.calls()
 	if err := planRun([]byte(twoMerges("b-1")), io.Discard); err == nil || !strings.Contains(err.Error(), "above b-1's level 3") || f.r.calls() != calls {
 		t.Errorf("above the level: %v", err)
 	}
-	// TJ approves; plan resume runs it through the control socket.
+	// SEB approves; plan resume runs it through the control socket.
 	f.digest = mustDigest(t, mustParse(t, twoMerges("b-1")))
-	if _, err := (&planCLI{t: t, cfg: f.x.cfg, bead: f.bead}).run("TJ", 0, "approve", f.digest); err != nil {
+	if _, err := (&planCLI{t: t, cfg: f.x.cfg, bead: f.bead}).run("SEB", 0, "approve", f.digest); err != nil {
 		t.Fatal(err)
 	}
 	if err := planResume(f.digest[:12], io.Discard); err != nil {

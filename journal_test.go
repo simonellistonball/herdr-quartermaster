@@ -124,18 +124,18 @@ func TestCheckBudgetAndBreaker(t *testing.T) {
 	if err != nil || len(items) != 1 || !strings.Contains(items[0].Event.Summary, "circuit breaker") {
 		t.Errorf("inbox: %+v, %v", items, err)
 	}
-	// Only TJ lifts it.
+	// Only SEB lifts it.
 	if _, err := setLevel(cfg, f.env(), "b-1", 5, 0, "the ticker (lease expired)", now); err != nil {
 		t.Fatal(err)
 	}
 	if lvl, _ := cfg.beadLevel(f.bead, false); lvl != breakerCap {
-		t.Errorf("a non-TJ level change lifted the breaker: %d", lvl)
+		t.Errorf("a non-SEB level change lifted the breaker: %d", lvl)
 	}
-	if _, err := setLevel(cfg, f.env(), "b-1", 5, 0, "TJ", now); err != nil {
+	if _, err := setLevel(cfg, f.env(), "b-1", 5, 0, "SEB", now); err != nil {
 		t.Fatal(err)
 	}
 	if lvl, _ := cfg.beadLevel(f.bead, false); lvl != 5 {
-		t.Errorf("after TJ set 5: %d", lvl)
+		t.Errorf("after SEB set 5: %d", lvl)
 	}
 }
 
@@ -178,7 +178,7 @@ func TestEnforceDispatchBudget(t *testing.T) {
 	if _, err := cfg.enforce(b, "dispatch", "coordinator"); !errors.Is(err, errNotAutonomous) || !strings.Contains(err.Error(), "budget") {
 		t.Errorf("second dispatch: %v, want a budget failure", err)
 	}
-	if _, err := cfg.enforce(b, "dispatch", "TJ"); err != nil {
-		t.Errorf("TJ's dispatch: %v", err)
+	if _, err := cfg.enforce(b, "dispatch", "SEB"); err != nil {
+		t.Errorf("SEB's dispatch: %v", err)
 	}
 }

@@ -166,7 +166,7 @@ func topClass(steps []autoStep) int {
 	return top
 }
 
-// BudgetConfig is [autonomy.budget]: how many steps a bead may take without TJ
+// BudgetConfig is [autonomy.budget]: how many steps a bead may take without SEB
 // per rolling hour. 0 is no limit.
 type BudgetConfig struct {
 	Steps      int `toml:"steps"`      // AUTO steps of any class, per bead
@@ -179,7 +179,7 @@ const budgetWindow = time.Hour
 // budgetSpent is why a class step on bead id (action, if any) would go over
 // budget, "" if it wouldn't. recs is the journal over the last budgetWindow.
 // Dispatches are counted by their passed checks, since the coordinator checks
-// before every dispatch it makes without TJ.
+// before every dispatch it makes without SEB.
 func budgetSpent(b BudgetConfig, recs []journalRecord, id string, class int, action string) string {
 	var steps, applies, dispatches int
 	for _, r := range recs {
@@ -206,7 +206,7 @@ func budgetSpent(b BudgetConfig, recs []journalRecord, id string, class int, act
 
 // The circuit breaker caps a bead at breakerCap when it loops: breakerRun
 // failed checks in a row within budgetWindow, or the same AUTO: step
-// breakerRun times running. It only lowers; `autonomy level` by TJ lifts it.
+// breakerRun times running. It only lowers; `autonomy level` by SEB lifts it.
 const (
 	breakerCap = 2
 	breakerRun = 3
@@ -273,7 +273,7 @@ func tripBreaker(id, reason string, now time.Time) error {
 }
 
 // journalAuto journals the AUTO: notes th's bead gained since prev, notifies
-// TJ of class 7 and up without blocking, and trips the breaker on a repeated
+// SEB of class 7 and up without blocking, and trips the breaker on a repeated
 // step. A bead seen for the first time only sets the count, so a restart or
 // a long-running bead doesn't land its old notes in the last hour.
 func (t Ticker) journalAuto(th Thread, prev Snapshot, seen bool, snap *Snapshot, now time.Time) {

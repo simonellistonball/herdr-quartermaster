@@ -522,7 +522,7 @@ func TestExecutorIACApply(t *testing.T) {
 		t.Errorf("a done apply kept its checkout: %v", err)
 	}
 
-	// Production is class 7, above level 6: previewed, then waiting for TJ
+	// Production is class 7, above level 6: previewed, then waiting for SEB
 	// with nothing applied and the checkout kept for the resume.
 	applies := len(tools.ran("tofu apply"))
 	resp = submit("tofu:app/infra/prod", nil)
@@ -536,12 +536,12 @@ func TestExecutorIACApply(t *testing.T) {
 	if _, err := os.Stat(iacProj(p.Steps[0])); err != nil {
 		t.Errorf("a waiting apply lost its checkout: %v", err)
 	}
-	if _, err := (&planCLI{t: t, cfg: cfg, bead: bead}).run("TJ", 0, "approve", digest); err != nil {
+	if _, err := (&planCLI{t: t, cfg: cfg, bead: bead}).run("SEB", 0, "approve", digest); err != nil {
 		t.Fatal(err)
 	}
 	tools.planCode = 2
 	if kind, err := x.execPlan(ctx, digest); err != nil || kind != planDone || len(tools.ran("tofu apply")) != applies+1 {
-		t.Errorf("resume after TJ's approval: %s %v", kind, err)
+		t.Errorf("resume after SEB's approval: %s %v", kind, err)
 	}
 
 	// Without expected counts, staging is one class up.
@@ -609,7 +609,7 @@ func TestRunCmdIAC(t *testing.T) {
 	if len(f.sent) != 1 || f.sent[0].Steps[0].Op != "iac.apply" || f.sent[0].Steps[0].Target != "pulumi:acme/app/dev" || len(f.replaced) != 0 {
 		t.Fatalf("sent %+v, replaced %v", f.sent, f.replaced)
 	}
-	// Waiting for TJ: an apply says how to run it once approved.
+	// Waiting for SEB: an apply says how to run it once approved.
 	f = newFixture()
 	f.resp = execResponse{State: "waiting", Digest: "d1g", Why: "not autonomous: class 7"}
 	if err := runCmd([]string{"tofu", "apply", "-auto-approve"}, f.r); err == nil || !strings.Contains(f.out.String(), "quartermaster plan resume d1g") {

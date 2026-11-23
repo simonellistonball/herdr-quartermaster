@@ -80,7 +80,7 @@ func runDigest(cfg Config, deliver string, always bool, stdout io.Writer) error 
 	if targets["stdout"] {
 		fmt.Fprint(stdout, text)
 	}
-	// From 7 up the digest is all TJ hears, so it arrives even when empty:
+	// From 7 up the digest is all SEB hears, so it arrives even when empty:
 	// quiet must look different from broken.
 	notify := always || d.worthNotifying() || digestOnly(cfg)
 	var sent []string
@@ -119,7 +119,7 @@ func runDigest(cfg Config, deliver string, always bool, stdout io.Writer) error 
 }
 
 // digestOnly says whether the global dial is in its digest-only reporting
-// band (docs/design/autonomy-dial.md, "What TJ hears").
+// band (docs/design/autonomy-dial.md, "What SEB hears").
 func digestOnly(cfg Config) bool {
 	s, err := loadAutonomy()
 	if err != nil {

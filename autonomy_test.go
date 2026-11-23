@@ -437,7 +437,7 @@ func TestSpendCheck(t *testing.T) {
 	if !strings.Contains(usage, fmt.Sprintf("class 4 up to $%d", spendLimit)) {
 		t.Errorf("usage doesn't state the spend limit $%d", spendLimit)
 	}
-	// Usage errors, not a stop for TJ.
+	// Usage errors, not a stop for SEB.
 	var out strings.Builder
 	for _, o := range []autonomyOpts{{Class: -1, Action: "spend", Amount: "~$40"}, {Class: -1, Action: "merge", Amount: "40"}, {Class: 4, Amount: "40"}} {
 		if err := autonomyCmd(cfg, f.env(), []string{"check", "b-1"}, o, &out); err == nil || errors.Is(err, errNotAutonomous) {
@@ -580,8 +580,8 @@ func TestGrantTellsIdleWorker(t *testing.T) {
 	want := []string{
 		"label b-1 supervised false",
 		"label b-1 autonomy:7 true",
-		"note b-1 autonomy level 7 set by TJ",
-		"prompt local w1:p1 [quartermaster autonomy: level 7, set by TJ]",
+		"note b-1 autonomy level 7 set by SEB",
+		"prompt local w1:p1 [quartermaster autonomy: level 7, set by SEB]",
 	}
 	if !slices.Equal(f.calls, want) {
 		t.Fatalf("calls\n%q\nwant\n%q", f.calls, want)
@@ -601,7 +601,7 @@ func TestLevelQueuesForBusyWorkerAndALowerOneReplacesIt(t *testing.T) {
 		bead:  Bead{ID: "b-1", Status: StatusInProgress, Labels: []string{"host:server"}},
 		agent: &Agent{Name: "b-1", PaneID: "w1:p1", Status: "working"},
 	}
-	msg, err := setLevel(defaultConfig(), f.env(), "b-1", 7, 0, "TJ", now)
+	msg, err := setLevel(defaultConfig(), f.env(), "b-1", 7, 0, "SEB", now)
 	if err != nil || !strings.Contains(msg, "b-1 is working; queued until it is idle") {
 		t.Fatalf("%q, %v", msg, err)
 	}
@@ -609,7 +609,7 @@ func TestLevelQueuesForBusyWorkerAndALowerOneReplacesIt(t *testing.T) {
 		t.Fatal("level not queued on the bead's host")
 	}
 	f.agent.Status = "blocked"
-	if _, err := setLevel(defaultConfig(), f.env(), "b-1", levelSupervised, 0, "TJ", now); err != nil {
+	if _, err := setLevel(defaultConfig(), f.env(), "b-1", levelSupervised, 0, "SEB", now); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.HasPrefix(queuedNotice(t, "server", "b-1"), levelTag+"2") {
@@ -621,7 +621,7 @@ func TestLevelQueuesForBusyWorkerAndALowerOneReplacesIt(t *testing.T) {
 	if !slices.Equal(f.bead.Labels, []string{"host:server", "autonomy:2"}) {
 		t.Fatalf("labels: %q", f.bead.Labels)
 	}
-	if _, err := setLevel(defaultConfig(), f.env(), "b-1", -1, 0, "TJ", now); err != nil {
+	if _, err := setLevel(defaultConfig(), f.env(), "b-1", -1, 0, "SEB", now); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(f.bead.Labels, []string{"host:server"}) {
@@ -635,16 +635,16 @@ func TestLowerLevelWaitsOutNeedsMe(t *testing.T) {
 		bead:  Bead{ID: "b-1", Status: StatusNeedsMe, Labels: []string{LabelAutonomous}},
 		agent: &Agent{Name: "b-1", PaneID: "w1:p1", Status: "idle"},
 	}
-	msg, err := setLevel(defaultConfig(), f.env(), "b-1", 4, 0, "TJ", time.Now())
+	msg, err := setLevel(defaultConfig(), f.env(), "b-1", 4, 0, "SEB", time.Now())
 	if err != nil || !strings.Contains(msg, "queued until it is answered") {
 		t.Fatalf("%q, %v", msg, err)
 	}
 	// A grant to the same idle needs_me worker goes through: it lets the
 	// worker take its recommendation.
-	if _, err := setLevel(defaultConfig(), f.env(), "b-1", 7, 0, "TJ", time.Now()); err != nil {
+	if _, err := setLevel(defaultConfig(), f.env(), "b-1", 7, 0, "SEB", time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(f.calls, "prompt local w1:p1 [quartermaster autonomy: level 7, set by TJ]") {
+	if !slices.Contains(f.calls, "prompt local w1:p1 [quartermaster autonomy: level 7, set by SEB]") {
 		t.Fatalf("grant not delivered: %q", f.calls)
 	}
 }
@@ -654,7 +654,7 @@ func TestLevelOnOpenBeadLeavesItToTheBrief(t *testing.T) {
 	f := &fakeAutonomy{bead: Bead{ID: "b-1", Status: StatusOpen}}
 	cfg := defaultConfig()
 	cfg.Autonomy.Max = 2
-	msg, err := setLevel(cfg, f.env(), "b-1", 7, 0, "TJ", time.Now())
+	msg, err := setLevel(cfg, f.env(), "b-1", 7, 0, "SEB", time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -664,7 +664,7 @@ func TestLevelOnOpenBeadLeavesItToTheBrief(t *testing.T) {
 	if queuedNotice(t, localHost, "b-1") != "" {
 		t.Fatal("queued a notice for a bead with no worker")
 	}
-	if _, err := setLevel(cfg, autonomyEnv{show: func(string) (Bead, error) { return Bead{ID: "b-1", Status: StatusClosed}, nil }}, "b-1", 7, 0, "TJ", time.Now()); err == nil {
+	if _, err := setLevel(cfg, autonomyEnv{show: func(string) (Bead, error) { return Bead{ID: "b-1", Status: StatusClosed}, nil }}, "b-1", 7, 0, "SEB", time.Now()); err == nil {
 		t.Fatal("set a closed bead")
 	}
 }
@@ -674,14 +674,14 @@ func TestBeadLeaseExpires(t *testing.T) {
 	cfg := defaultConfig()
 	now := time.Date(2026, 11, 8, 12, 0, 0, 0, time.UTC)
 	f := &fakeAutonomy{bead: Bead{ID: "b-1", Status: StatusInProgress, Labels: []string{"autonomy:5"}}}
-	if _, err := setLevel(cfg, f.env(), "b-1", 9, 0, "TJ", now); err == nil {
+	if _, err := setLevel(cfg, f.env(), "b-1", 9, 0, "SEB", now); err == nil {
 		t.Fatal("9 without --for")
 	}
-	if _, err := setLevel(cfg, f.env(), "b-1", 9, time.Hour, "TJ", now); err != nil {
+	if _, err := setLevel(cfg, f.env(), "b-1", 9, time.Hour, "SEB", now); err != nil {
 		t.Fatal(err)
 	}
 	// Re-leasing keeps the level the first lease would go back to.
-	if _, err := setLevel(cfg, f.env(), "b-1", 8, 2*time.Hour, "TJ", now); err != nil {
+	if _, err := setLevel(cfg, f.env(), "b-1", 8, 2*time.Hour, "SEB", now); err != nil {
 		t.Fatal(err)
 	}
 	s, _ := loadAutonomy()
@@ -708,7 +708,7 @@ func TestBeadLeaseExpires(t *testing.T) {
 		t.Fatalf("leases left: %+v", s.Leases)
 	}
 	// A closed bead's lapsed lease is dropped.
-	if _, err := setLevel(cfg, f.env(), "b-1", 8, time.Hour, "TJ", now); err != nil {
+	if _, err := setLevel(cfg, f.env(), "b-1", 8, time.Hour, "SEB", now); err != nil {
 		t.Fatal(err)
 	}
 	f.bead.Status = StatusClosed
@@ -742,7 +742,7 @@ func TestDeliverQueuedNotices(t *testing.T) {
 	if err := queueBrief("b-1", "brief"); err != nil {
 		t.Fatal(err)
 	}
-	for id, text := range map[string]string{"b-1": levelNotice("b-1", 7, "TJ"), "b-2": levelNotice("b-2", 2, "TJ")} {
+	for id, text := range map[string]string{"b-1": levelNotice("b-1", 7, "SEB"), "b-2": levelNotice("b-2", 2, "SEB")} {
 		if err := writeAtomic(noticePath(localHost, id), []byte(text)); err != nil {
 			t.Fatal(err)
 		}
@@ -778,11 +778,11 @@ func TestHeldNotice(t *testing.T) {
 		needsMe bool
 		want    bool
 	}{
-		{levelNotice("b", 7, "TJ"), true, false},
-		{levelNotice("b", 9, "TJ"), true, false},
-		{levelNotice("b", 6, "TJ"), true, true},
-		{levelNotice("b", 2, "TJ"), false, false},
-		{"[quartermaster autonomy: granted by TJ] old", true, true},
+		{levelNotice("b", 7, "SEB"), true, false},
+		{levelNotice("b", 9, "SEB"), true, false},
+		{levelNotice("b", 6, "SEB"), true, true},
+		{levelNotice("b", 2, "SEB"), false, false},
+		{"[quartermaster autonomy: granted by SEB] old", true, true},
 	} {
 		if got := heldNotice(c.text, c.needsMe); got != c.want {
 			t.Errorf("%.40q needs_me=%v: %v", c.text, c.needsMe, got)
@@ -792,12 +792,12 @@ func TestHeldNotice(t *testing.T) {
 
 func TestBriefNamesMidFlightLevel(t *testing.T) {
 	b := brief(Bead{ID: "b-1", Title: "T"}, "br", "/p", "", "")
-	if !strings.Contains(b, "[quartermaster autonomy: level N, set by TJ]") || !strings.Contains(b, "`quartermaster autonomy check b-1` calls pass") {
+	if !strings.Contains(b, "[quartermaster autonomy: level N, set by SEB]") || !strings.Contains(b, "`quartermaster autonomy check b-1` calls pass") {
 		t.Fatalf("brief does not explain a mid-flight level change:\n%s", b)
 	}
 }
 
-// Owned commands go ahead for TJ, and for anyone else only up to the bead's
+// Owned commands go ahead for SEB, and for anyone else only up to the bead's
 // level, with the AUTO: prefix to note it by.
 func TestEnforce(t *testing.T) {
 	t.Setenv("QUARTERMASTER_STATE_DIR", t.TempDir())
@@ -808,11 +808,11 @@ func TestEnforce(t *testing.T) {
 	}
 	b.Labels = []string{"autonomy:2"}
 	for _, a := range []string{"dispatch", "resume", "release"} {
-		if _, err := cfg.enforce(b, a, "coordinator"); !errors.Is(err, errNotAutonomous) || !strings.Contains(err.Error(), "--by TJ") {
+		if _, err := cfg.enforce(b, a, "coordinator"); !errors.Is(err, errNotAutonomous) || !strings.Contains(err.Error(), "--by SEB") {
 			t.Errorf("%s at 2: %v", a, err)
 		}
-		if auto, err := cfg.enforce(b, a, "TJ"); err != nil || auto != "" {
-			t.Errorf("%s by TJ at 2: %q, %v", a, auto, err)
+		if auto, err := cfg.enforce(b, a, "SEB"); err != nil || auto != "" {
+			t.Errorf("%s by SEB at 2: %q, %v", a, auto, err)
 		}
 	}
 	// The stop file caps at 2 whatever the label says.

@@ -105,7 +105,7 @@ func TestTapAnswersPromptEndToEnd(t *testing.T) {
 	if len(f.sent) != 1 || !slices.Equal(f.sent[0], []string{"1"}) {
 		t.Fatalf("sent %q", f.sent)
 	}
-	want := "PROMPT ANSWERED: 1 Yes to Bash command: Create out2 directory and touch hello.txt [" + p.Hash + "] by TJ via tap (device iphone181)"
+	want := "PROMPT ANSWERED: 1 Yes to Bash command: Create out2 directory and touch hello.txt [" + p.Hash + "] by SEB via tap (device iphone181)"
 	if !slices.Equal(f.notes, []string{want}) {
 		t.Fatalf("notes = %q", f.notes)
 	}
@@ -184,7 +184,7 @@ func TestTapWrongDeviceRefused(t *testing.T) {
 	if len(f.sent) != 0 || len(f.notes) != 0 {
 		t.Fatalf("a wrong-device tap changed something: sent %q, notes %q", f.sent, f.notes)
 	}
-	// The refusal did not spend the link: TJ's phone can still use it.
+	// The refusal did not spend the link: SEB's phone can still use it.
 	s.whois = func(string) (tapIdentity, error) { return tapIdentity{Device: "iphone181"}, nil }
 	if code, body := tapRequest(s, http.MethodPost, tok, tapPhoneAddr); code != http.StatusOK {
 		t.Fatalf("tap after a refused one = %d %q", code, body)
@@ -284,7 +284,7 @@ func TestTapLinksAndEventSuffix(t *testing.T) {
 	tk := Ticker{cfg: cfg, log: log.New(io.Discard, "", 0)}
 	th := Thread{Bead: Bead{ID: "backend-ab12"}, Prompt: &p}
 	suffix := tk.tapEventSuffix(th)
-	if strings.Count(suffix, "/tap/") != len(p.Options) || !strings.Contains(suffix, "tap to answer as TJ") {
+	if strings.Count(suffix, "/tap/") != len(p.Options) || !strings.Contains(suffix, "tap to answer as SEB") {
 		t.Errorf("event suffix = %q", suffix)
 	}
 	tk.cfg.Tap.Enabled = false

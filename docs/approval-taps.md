@@ -30,12 +30,12 @@ already in use; nothing new pushes.
 Following a link shows a confirm page with the prompt **re-read live from the
 worker** and one large button for the linked option. Pressing it answers
 through the same code as `quartermaster answer <bead> <choice> --expect
-<hash> --by TJ`: the prompt is read again, a changed prompt is refused, the
+<hash> --by SEB`: the prompt is read again, a changed prompt is refused, the
 keys are sent, the wait-for-clear runs, and the bead gets the usual audit
 note, extended with the transport and its identity evidence:
 
 ```
-PROMPT ANSWERED: 1 Yes to Bash command: … [bff9292a] by TJ via tap (device iphone181)
+PROMPT ANSWERED: 1 Yes to Bash command: … [bff9292a] by SEB via tap (device iphone181)
 ```
 
 The confirm step is deliberate. A bare GET that answered would let a chat
@@ -44,7 +44,7 @@ fat-fingered notification tap is one extra press away from releasing
 anything. The link is still one tap target per option; the page it opens is
 the review, and its button is the answer.
 
-## What makes a tap TJ's
+## What makes a tap SEB's
 
 A tap changes something only when all of these hold, checked in this order —
 a failure at any step spends nothing and is journalled (`TAP REFUSED: …` in
@@ -65,7 +65,7 @@ a failure at any step spends nothing and is journalled (`TAP REFUSED: …` in
    wrong device and is refused before anything is spent.
 4. **One use.** The nonce is spent atomically before the answer is attempted;
    a replay is refused. Refusals in steps 1–3 happen before the nonce is
-   spent, so a refused attempt by anyone else does not burn TJ's link.
+   spent, so a refused attempt by anyone else does not burn SEB's link.
 5. **Same prompt.** The answer path re-reads the worker's screen and refuses
    when the prompt's hash differs from the link's, exactly as `--expect`
    does. A tap for a prompt that changed, cleared, or was answered another
@@ -73,8 +73,8 @@ a failure at any step spends nothing and is journalled (`TAP REFUSED: …` in
    still be `needs_me`, still end in the same question hash, and its worker
    must not already be working again.
 
-A tap answers as TJ (`--by TJ` semantics): it is not gated by the bead's
-autonomy level or the class of the command it releases, because it *is* TJ
+A tap answers as SEB (`--by SEB` semantics): it is not gated by the bead's
+autonomy level or the class of the command it releases, because it *is* SEB
 deciding, with the command in front of him. Coordinator answers keep their
 class gate; nothing about `quartermaster answer` changes.
 
@@ -147,10 +147,10 @@ A question tap goes through the same endpoint and the same five checks; the
 link's hash is taken over the question's lines, its options and its class,
 and binds it to that question instance. The confirm page shows the question
 re-read from the bead. Pressing the button does what the coordinator does
-when TJ answers in the coordinator session, in this order:
+when SEB answers in the coordinator session, in this order:
 
 1. Notes the answer on the bead —
-   `NEEDS_ME ANSWERED: 2 One region first… to Ship to all regions… [hash] by TJ via tap (device iphone181)` —
+   `NEEDS_ME ANSWERED: 2 One region first… to Ship to all regions… [hash] by SEB via tap (device iphone181)` —
    and journals it.
 2. Returns the bead to `in_progress`.
 3. Prompts the worker with the answer (over its control socket when it has
@@ -165,11 +165,11 @@ worker blocked at an approval prompt, or one that is no longer running, is
 never typed into — the answer stands on the bead, a follow-up note says it
 was not prompted, and the result page says so too.
 
-As with prompts, a tap is TJ deciding, so it is not gated by the bead's
+As with prompts, a tap is SEB deciding, so it is not gated by the bead's
 autonomy class; the `CLASS:` line is shown on the confirm page (as part of
 the question) so the decision is made with the class of what each option
 authorizes in view. That includes `CRITICAL:` questions: they are reserved
-for TJ, and a tap *is* TJ. The coordinator's own rules for answering
+for SEB, and a tap *is* SEB. The coordinator's own rules for answering
 `needs_me` questions are unchanged.
 
 ## Rollback and failure modes
@@ -191,13 +191,13 @@ for TJ, and a tap *is* TJ. The coordinator's own rules for answering
 
 ## Threat model, in one paragraph
 
-The endpoint is reachable only from devices on TJ's tailnet. Another tailnet
+The endpoint is reachable only from devices on SEB's tailnet. Another tailnet
 device holding a link (say a laptop) is refused by the device allowlist. A
 worker on this machine is refused the same way, which is the case that
 matters, since workers can read the inbox. What this does not defend against
-is the standing advisory limit: an agent running as TJ on this machine can
+is the standing advisory limit: an agent running as SEB on this machine can
 read `tap/secret`, mint its own links, or simply run `quartermaster answer
---by TJ` — taps neither widen nor narrow that, and `--by TJ` remains a label
+--by SEB` — taps neither widen nor narrow that, and `--by SEB` remains a label
 until the executor owns credentials. The prompt text a tap page renders is
 screen text the agent controls; it is HTML-escaped, and the page takes no
 action without a press.

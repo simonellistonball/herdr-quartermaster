@@ -28,7 +28,7 @@ import (
 // fsynced event log: an intent before it, an outcome after. A crash between
 // the two leaves an intent with no outcome, and resume settles it: probe
 // whether the effect happened, recheck the preconditions, retry only an op
-// that is retry-safe, and otherwise stop for TJ. That is at-least-once with a
+// that is retry-safe, and otherwise stop for SEB. That is at-least-once with a
 // probe, not exactly-once.
 //
 // It runs as `quartermaster executor run` under a systemd user unit and
@@ -176,14 +176,14 @@ func planRunState(events []planEvent, digest string) string {
 	if !ok {
 		return ""
 	}
-	again := fmt.Sprintf("quartermaster plan approve %s --by TJ, then quartermaster plan resume %s", digest, digest)
+	again := fmt.Sprintf("quartermaster plan approve %s --by SEB, then quartermaster plan resume %s", digest, digest)
 	switch e.Kind {
 	case planDone:
 		return "done " + e.At.Format("15:04")
 	case planFailed:
 		return "failed: " + e.Why
 	case planNeedsMe:
-		return "stopped for TJ: " + e.Why + "; " + again
+		return "stopped for SEB: " + e.Why + "; " + again
 	case planExpired:
 		return "expired: " + e.Why + "; " + again
 	case planIntent:
@@ -216,7 +216,7 @@ func (x *executor) record(digest string, p Plan, e planEvent) error {
 	return errors.Join(err, appendJournal(rec))
 }
 
-// end records how a plan ended or stopped and, when it stopped for TJ, puts
+// end records how a plan ended or stopped and, when it stopped for SEB, puts
 // the bead to needs_me with the question.
 func (x *executor) end(digest string, p Plan, class int, kind, why string) (string, error) {
 	err := x.record(digest, p, planEvent{Kind: kind, Class: class, Why: why})
@@ -224,7 +224,7 @@ func (x *executor) end(digest string, p Plan, class int, kind, why string) (stri
 		x.cleanupPlan(p)
 	}
 	if kind == planNeedsMe || kind == planExpired {
-		note := fmt.Sprintf("EXEC: plan %s stopped: %s. To go on: quartermaster plan approve %s --by TJ, then quartermaster plan resume %s\nCLASS: %d — plan %s", short(digest), why, digest, digest, class, short(digest))
+		note := fmt.Sprintf("EXEC: plan %s stopped: %s. To go on: quartermaster plan approve %s --by SEB, then quartermaster plan resume %s\nCLASS: %d — plan %s", short(digest), why, digest, digest, class, short(digest))
 		if nerr := x.needsMe(p.Bead, note); nerr != nil {
 			err = errors.Join(err, fmt.Errorf("needs_me on %s: %w", p.Bead, nerr))
 		}
@@ -235,7 +235,7 @@ func (x *executor) end(digest string, p Plan, class int, kind, why string) (stri
 
 // recheck is what stops plan p before its next step, "" if nothing does: a
 // closed bead; no live approval; and for the dial's approval, a level now
-// below the plan's class or a spent budget. TJ's approval stands above the
+// below the plan's class or a spent budget. SEB's approval stands above the
 // level until it expires.
 func (x *executor) recheck(p Plan, digest string, class int) (kind, why string) {
 	now := x.now()
@@ -254,7 +254,7 @@ func (x *executor) recheck(p Plan, digest string, class int) (kind, why string) 
 	if !ok {
 		return planExpired, "no live approval"
 	}
-	if a.By == "TJ" {
+	if a.By == "SEB" {
 		return "", ""
 	}
 	if lvl, capped := x.cfg.beadLevel(b, autonomyStopped()); class > lvl {

@@ -442,7 +442,7 @@ func snapshotDebounced(t Thread, prev Snapshot, now time.Time, debounce, flap ti
 	}
 	if t.PR != nil {
 		s.PRNumber, s.PRState = t.PR.Number, t.PR.State
-		// A PR is ready to announce only once nobody is waiting on TJ: a
+		// A PR is ready to announce only once nobody is waiting on SEB: a
 		// worker at needs_me leaves auto-merge off for the decision it asked for,
 		// and the announcement follows the answer.
 		if k := readyKey(t); k != "" && t.Bead.Status != StatusNeedsMe {

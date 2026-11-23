@@ -90,7 +90,7 @@ type Config struct {
 	// coordinator alike.
 	Agents map[string]AgentConfig `toml:"agents"`
 
-	// Autonomy is the dial: how far beads go without TJ; see
+	// Autonomy is the dial: how far beads go without SEB; see
 	// docs/design/autonomy-dial.md. It also decides what auto_close and
 	// auto_resolve did: the ticker closes and resolves at level 3 and above.
 	Autonomy AutonomyConfig `toml:"autonomy"`
@@ -99,7 +99,7 @@ type Config struct {
 	// them; see accept.go.
 	Verifier VerifierConfig `toml:"verifier"`
 
-	// Tap serves signed one-time approval links on the tailnet, so TJ can
+	// Tap serves signed one-time approval links on the tailnet, so SEB can
 	// answer a worker's approval prompt from a phone; see tap.go and
 	// docs/approval-taps.md. Off unless [tap] enabled is set.
 	Tap TapConfig `toml:"tap"`

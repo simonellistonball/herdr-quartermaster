@@ -223,7 +223,7 @@ func beadQuestion(env promptEnv, id string) (Bead, NeedsMeQuestion, error) {
 }
 
 // questionWorker is a question bead's worker, nil when it has none running.
-// A lookup failure reads as none: the answer is still TJ's to record, and
+// A lookup failure reads as none: the answer is still SEB's to record, and
 // the caller says the worker was not prompted.
 func questionWorker(env promptEnv, b Bead) (string, *Agent) {
 	host := beadHost(b)
@@ -239,9 +239,9 @@ func questionWorker(env promptEnv, b Bead) (string, *Agent) {
 
 var errWorkerWorking = errors.New("the worker is working again; it may already have its answer")
 
-// answerNeedsMeVia records TJ's tap answer to a bead's question, mirroring
-// what the coordinator does when TJ answers in the coordinator session: the
-// answer goes on the bead as NEEDS_ME ANSWERED (by TJ, via naming how it
+// answerNeedsMeVia records SEB's tap answer to a bead's question, mirroring
+// what the coordinator does when SEB answers in the coordinator session: the
+// answer goes on the bead as NEEDS_ME ANSWERED (by SEB, via naming how it
 // arrived), the bead returns to in_progress, and the worker is prompted
 // with the answer. The question is re-read first and must still hash to
 // expect, and a worker that is working again refuses the tap — it may
@@ -268,7 +268,7 @@ func answerNeedsMeVia(env promptEnv, id, choice, expect, via string) (string, er
 	if a != nil && a.Status == "working" {
 		return "", errWorkerWorking
 	}
-	note := fmt.Sprintf("NEEDS_ME ANSWERED: %d %s to %s [%s] by TJ via %s", o.Number, shortTitle(o.Label, 60), shortTitle(q.Summary(), 80), q.Hash, via)
+	note := fmt.Sprintf("NEEDS_ME ANSWERED: %d %s to %s [%s] by SEB via %s", o.Number, shortTitle(o.Label, 60), shortTitle(q.Summary(), 80), q.Hash, via)
 	if err := env.note(id, note); err != nil {
 		return "", fmt.Errorf("noting the answer on %s failed: %w", id, err)
 	}
@@ -282,7 +282,7 @@ func answerNeedsMeVia(env promptEnv, id, choice, expect, via string) (string, er
 		return "", fmt.Errorf("answered, but journaling it failed: %w", err)
 	}
 	msg := fmt.Sprintf("answered %s: %d %s; the bead is in_progress", id, o.Number, o.Label)
-	prompt := fmt.Sprintf("TJ answered your needs_me question (via %s): %d. %s\nThe question was: %s\nThe bead is back to in_progress and the answer is noted on it as NEEDS_ME ANSWERED. Carry on with that choice.", via, o.Number, o.Label, q.Summary())
+	prompt := fmt.Sprintf("SEB answered your needs_me question (via %s): %d. %s\nThe question was: %s\nThe bead is back to in_progress and the answer is noted on it as NEEDS_ME ANSWERED. Carry on with that choice.", via, o.Number, o.Label, q.Summary())
 	switch {
 	case a == nil:
 		return msg + notPrompted(env, id, "no worker is running"), nil

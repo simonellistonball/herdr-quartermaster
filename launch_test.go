@@ -89,7 +89,7 @@ func TestRelaunchOnLevelChange(t *testing.T) {
 	if due := tk.launchMismatch([]Thread{at9}); len(due) != 0 {
 		t.Fatalf("due %v", due)
 	}
-	// A needs_me worker waits on TJ and is left alone.
+	// A needs_me worker waits on SEB and is left alone.
 	at9.Bead.Status, at9.Bead.Labels = StatusNeedsMe, []string{"autonomy:4"}
 	if due := tk.launchMismatch([]Thread{at9}); len(due) != 0 {
 		t.Fatalf("needs_me due %v", due)

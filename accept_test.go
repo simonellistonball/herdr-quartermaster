@@ -107,10 +107,10 @@ func (f *fakeClose) env() closeEnv {
 			return nil
 		},
 		enforce: func(_ Bead, by string) (string, error) {
-			if f.denied && by != "TJ" {
+			if f.denied && by != "SEB" {
 				return "", errNotAutonomous
 			}
-			if by == "TJ" {
+			if by == "SEB" {
 				return "", nil
 			}
 			return "AUTO: [" + by + " L4 C3]", nil
@@ -177,7 +177,7 @@ func TestCloseFailReturnsToWorkerThenEscalates(t *testing.T) {
 		t.Fatalf("round 2: err=%v closed=%q status=%q", err, f.closed, f.status)
 	}
 	last := f.notes[len(f.notes)-1]
-	if !strings.Contains(last, "escalated to TJ") || !strings.Contains(last, "Worker's close reason: audited") || !strings.Contains(last, "CLASS: 3") {
+	if !strings.Contains(last, "escalated to SEB") || !strings.Contains(last, "Worker's close reason: audited") || !strings.Contains(last, "CLASS: 3") {
 		t.Fatalf("escalation note: %s", last)
 	}
 }
@@ -250,10 +250,10 @@ func TestCloseRollingOutRemovesLabel(t *testing.T) {
 
 func TestCloseByTJSkipsVerifier(t *testing.T) {
 	f := &fakeClose{bead: noPRBead()}
-	if err := closeBead(defaultConfig(), f.env(), "backend-ab12", "TJ checked", "TJ", io.Discard); err != nil {
+	if err := closeBead(defaultConfig(), f.env(), "backend-ab12", "SEB checked", "SEB", io.Discard); err != nil {
 		t.Fatal(err)
 	}
-	if f.closed == "" || len(f.prompts) != 0 || !hasNote(f.notes, "VERIFY: skipped [TJ]") {
+	if f.closed == "" || len(f.prompts) != 0 || !hasNote(f.notes, "VERIFY: skipped [SEB]") {
 		t.Fatalf("closed=%q prompts=%d notes=%q", f.closed, len(f.prompts), f.notes)
 	}
 }

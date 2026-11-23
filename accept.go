@@ -32,7 +32,7 @@ type VerifierConfig struct {
 	// Command runs the verifier: the prompt goes to its stdin, the verdict
 	// comes back on stdout. Unset uses defaultVerifierCommand.
 	Command []string `toml:"command"`
-	// MaxRounds is how many failed verdicts in a row send the bead to TJ
+	// MaxRounds is how many failed verdicts in a row send the bead to SEB
 	// (needs_me) instead of back to its worker; 0 means 2.
 	MaxRounds int `toml:"max_rounds"`
 	// Minutes bounds one run; 0 means 15.
@@ -144,7 +144,7 @@ func verifierScope(b Bead) (bool, string) {
 // verifierPrompt is everything the verifier sees: the task, the criteria and
 // where to look. It leaves out the worker's notes and close reason, which are
 // the conclusion being checked; only the URLs in them and the results of
-// commands TJ ran (RAN: notes) go in, as pointers.
+// commands SEB ran (RAN: notes) go in, as pointers.
 func verifierPrompt(cfg Config, b Bead) string {
 	var s strings.Builder
 	fmt.Fprintf(&s, "You are an independent verifier for bead %s: %s\n", b.ID, b.Title)
@@ -175,7 +175,7 @@ Your shell runs only an allowlist of read-only commands (gh pr/run view, git log
 	}
 	for l := range strings.SplitSeq(b.Notes, "\n") {
 		if l = strings.TrimSpace(l); strings.HasPrefix(l, "RAN:") {
-			fmt.Fprintf(&s, "- Reported by TJ: %s\n", l)
+			fmt.Fprintf(&s, "- Reported by SEB: %s\n", l)
 		}
 	}
 	s.WriteString(`
@@ -333,10 +333,10 @@ func verifyRounds(recs []journalRecord, id string, since time.Time) (fails int, 
 
 // closeBead is `quartermaster close <bead> --reason R [--by WHO]`, the close
 // path that keeps a worker from certifying its own in-scope bead. by is who
-// asked: TJ closes as the evaluator and skips the verifier; anyone else needs
+// asked: SEB closes as the evaluator and skips the verifier; anyone else needs
 // the dial to allow closing (class 3) and, for an in-scope bead, a verifier
 // pass. A fail goes back to the caller with the failing criteria; maxRounds
-// fails in a row send the bead to TJ.
+// fails in a row send the bead to SEB.
 func closeBead(cfg Config, env closeEnv, id, reason, by string, w io.Writer) error {
 	if strings.TrimSpace(reason) == "" {
 		return errors.New("close needs --reason \"<what shipped and how it was verified>\"")
@@ -359,9 +359,9 @@ func closeBead(cfg Config, env closeEnv, id, reason, by string, w io.Writer) err
 		}
 	}
 	switch {
-	case by == "TJ":
+	case by == "SEB":
 		if inScope {
-			note("VERIFY: skipped [TJ] TJ closed it as the evaluator (" + why + ")")
+			note("VERIFY: skipped [SEB] SEB closed it as the evaluator (" + why + ")")
 		}
 	case !inScope:
 		fmt.Fprintf(w, "%s: no verifier (%s)\n", id, why)
@@ -426,10 +426,10 @@ func verify(cfg Config, env closeEnv, b Bead, reason, why string, note func(stri
 		fmt.Fprintf(w, "%s: verifier failed (round %d of %d). The bead stays open; fix these and run close again:\n%s\n", b.ID, fails, limit, failing)
 		return errVerifyFailed
 	}
-	note(fmt.Sprintf("VERIFY: fail [verifier] round %d/%d, escalated to TJ. Verifier: %s\nWorker's close reason: %s\nRecommendation: TJ reads both and either closes with `quartermaster close %s --by TJ --reason \"...\"` or sends the worker back with what is missing.\nCLASS: 3 — close %s over the verifier's fail", fails, limit, res.summary(), reason, b.ID, b.ID))
+	note(fmt.Sprintf("VERIFY: fail [verifier] round %d/%d, escalated to SEB. Verifier: %s\nWorker's close reason: %s\nRecommendation: SEB reads both and either closes with `quartermaster close %s --by SEB --reason \"...\"` or sends the worker back with what is missing.\nCLASS: 3 — close %s over the verifier's fail", fails, limit, res.summary(), reason, b.ID, b.ID))
 	if err := env.setStatus(b.ID, StatusNeedsMe); err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "%s: verifier failed %d rounds in a row; the bead is needs_me for TJ:\n%s\n", b.ID, fails, failing)
+	fmt.Fprintf(w, "%s: verifier failed %d rounds in a row; the bead is needs_me for SEB:\n%s\n", b.ID, fails, failing)
 	return errVerifyFailed
 }

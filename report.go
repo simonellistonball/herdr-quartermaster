@@ -30,7 +30,7 @@ type InFlight struct {
 	State string
 }
 
-// AutoSteps are the steps a bead's worker took without TJ: its AUTO: notes.
+// AutoSteps are the steps a bead's worker took without SEB: its AUTO: notes.
 type AutoSteps struct {
 	Bead  Bead
 	Notes []string
@@ -255,7 +255,7 @@ func renderReport(r Report, now time.Time) string {
 		fmt.Fprintf(&s, "- **%s** (`%s`): %s\n", oneLine(b.Title), b.ID, lastNote(b.Notes, 300))
 	}
 
-	// Only beads that took steps without TJ have these, so the section shows
+	// Only beads that took steps without SEB have these, so the section shows
 	// only when there are some. Steps are grouped by class, highest first.
 	if len(r.Auto) > 0 {
 		var steps []autoStep

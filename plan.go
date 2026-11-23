@@ -22,7 +22,7 @@ import (
 // Execution plans (docs/design/execution-plan.md): a plan is a list of typed
 // operations a worker proposes, checked against the dial before anything
 // runs. This file is the IR, its digest and the check; the executor that runs
-// approved plans comes later. Approval, by the dial or by TJ, binds to the
+// approved plans comes later. Approval, by the dial or by SEB, binds to the
 // plan's digest and expires, so a new head or a new preview needs a new one.
 
 // A Plan is what a worker proposes and quartermaster checks and approves.
@@ -249,7 +249,7 @@ func (c Config) opClass(b Bead, s Step) (int, string) {
 			}(), ", ") + ")"
 		}
 		if len(pc.Problems) > 0 {
-			// gate gives a plan with problems no class: it stops for TJ.
+			// gate gives a plan with problems no class: it stops for SEB.
 			return 9, why + "; " + strings.Join(pc.Problems, "; ")
 		}
 		if e == "" {
@@ -289,7 +289,7 @@ type planEvent struct {
 	Pass  bool      `json:"pass,omitempty"`
 	// Why is what failed a check, or why a plan ended as it did.
 	Why     string    `json:"why,omitempty"`
-	By      string    `json:"by,omitempty"` // dial or TJ
+	By      string    `json:"by,omitempty"` // dial or SEB
 	Expires time.Time `json:"expires,omitzero"`
 	// Step (1-based) and Attempt are an intent's or an outcome's.
 	Step    int `json:"step,omitempty"`
@@ -309,7 +309,7 @@ const (
 	// the latest rerun are the run's.
 	planRerun = "rerun"
 	// The ends. done and failed are final; a plan stopped at needs_me or
-	// expired continues with plan resume once TJ approves it.
+	// expired continues with plan resume once SEB approves it.
 	planDone    = "done"
 	planFailed  = "failed"
 	planNeedsMe = "needs_me"
@@ -426,12 +426,12 @@ func liveApproval(events []planEvent, now time.Time) (planEvent, bool) {
 	return planEvent{}, false
 }
 
-const planUsage = "usage: quartermaster plan check <file|-> | approve <digest> --by TJ [--for D] | status <digest> | run <file|-> | resume <digest>"
+const planUsage = "usage: quartermaster plan check <file|-> | approve <digest> --by SEB [--for D] | status <digest> | run <file|-> | resume <digest>"
 
 // planCmd is `quartermaster plan`. check classifies a plan, stores it under
 // its digest and approves it by the dial when its class is at most the
 // bead's level and the budgets allow; otherwise it exits nonzero, naming the
-// digest TJ approves. approve is TJ's. status shows a plan and its approval.
+// digest SEB approves. approve is SEB's. status shows a plan and its approval.
 func planCmd(cfg Config, show func(string) (Bead, error), pos []string, by string, ttl time.Duration, stdin io.Reader, w io.Writer) error {
 	if len(pos) != 2 {
 		return errors.New(planUsage)
@@ -452,25 +452,25 @@ func planCmd(cfg Config, show func(string) (Bead, error), pos []string, by strin
 		}
 		return checkPlanFor(cfg, show, p, now, w)
 	case "approve":
-		if by != "TJ" {
-			return fmt.Errorf("%w: plan approve is TJ's (--by TJ); the dial approves with plan check", errNotAutonomous)
+		if by != "SEB" {
+			return fmt.Errorf("%w: plan approve is SEB's (--by SEB); the dial approves with plan check", errNotAutonomous)
 		}
 		p, digest, err := loadPlan(pos[1])
 		if err != nil {
 			return err
 		}
 		class, _ := classifyPlan(cfg, show, p)
-		e := planEvent{At: now, Kind: planApproved, Class: class, Level: -1, Pass: true, By: "TJ", Expires: now.Add(ttl)}
+		e := planEvent{At: now, Kind: planApproved, Class: class, Level: -1, Pass: true, By: "SEB", Expires: now.Add(ttl)}
 		if err := appendPlanEvent(digest, e); err != nil {
 			return err
 		}
-		fmt.Fprintf(w, "plan %s (%s, class %d) approved by TJ until %s\n", short(digest), p.Bead, class, e.Expires.Format("15:04"))
+		fmt.Fprintf(w, "plan %s (%s, class %d) approved by SEB until %s\n", short(digest), p.Bead, class, e.Expires.Format("15:04"))
 		if events, _ := readPlanEvents(digest); unfinished(events) || slices.ContainsFunc(events, func(e planEvent) bool { return e.Kind == planNeedsMe || e.Kind == planExpired }) {
 			if s := planRunState(events, digest); !strings.HasPrefix(s, "done") && !strings.HasPrefix(s, "failed") {
 				fmt.Fprintf(w, "its run stopped; continue it: quartermaster plan resume %s\n", digest)
 			}
 		}
-		return appendJournal(journalRecord{At: now, Kind: journalCheck, Bead: p.Bead, Class: class, Action: "plan", Pass: true, Text: "plan " + short(digest) + " approved by TJ"})
+		return appendJournal(journalRecord{At: now, Kind: journalCheck, Bead: p.Bead, Class: class, Action: "plan", Pass: true, Text: "plan " + short(digest) + " approved by SEB"})
 	case "run":
 		data, err := readPlanArg(pos[1], stdin)
 		if err != nil {
@@ -573,7 +573,7 @@ func checkPlanFor(cfg Config, show func(string) (Bead, error), p Plan, now time.
 		if failedRun(append(recs, rec), b.ID) && lvl > breakerCap {
 			fail = errors.Join(fail, tripBreaker(b.ID, fmt.Sprintf("%d failed checks in a row", breakerRun), now))
 		}
-		fmt.Fprintf(w, "waiting for TJ: quartermaster plan approve %s --by TJ\n", digest)
+		fmt.Fprintf(w, "waiting for SEB: quartermaster plan approve %s --by SEB\n", digest)
 		return fail
 	}
 	fmt.Fprintf(w, "approved by the dial (level %d) until %s; advisory\n", lvl, now.Add(approvalTTL).Format("15:04"))
@@ -614,9 +614,9 @@ func planState(events []planEvent, digest string, now time.Time) string {
 	for _, e := range slices.Backward(events) {
 		switch e.Kind {
 		case planApproved:
-			return fmt.Sprintf("expired: approved by %s until %s; check it again, or quartermaster plan approve %s --by TJ", e.By, e.Expires.Format("15:04"), digest)
+			return fmt.Sprintf("expired: approved by %s until %s; check it again, or quartermaster plan approve %s --by SEB", e.By, e.Expires.Format("15:04"), digest)
 		case planChecked:
-			return fmt.Sprintf("waiting for TJ (%s): quartermaster plan approve %s --by TJ", e.Why, digest)
+			return fmt.Sprintf("waiting for SEB (%s): quartermaster plan approve %s --by SEB", e.Why, digest)
 		}
 	}
 	return "not checked: quartermaster plan check <file>"

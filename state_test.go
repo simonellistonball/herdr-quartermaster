@@ -698,7 +698,7 @@ func TestReadyToMergeOncePerHead(t *testing.T) {
 }
 
 func TestReadyToMergeWaitsForTheNeedsMeAnswer(t *testing.T) {
-	// The worker left auto-merge off and asked TJ: ready isn't news yet.
+	// The worker left auto-merge off and asked SEB: ready isn't news yet.
 	held := thread(bead(StatusNeedsMe), agent("idle", 1), readyPR())
 	prev := Snapshot{Group: GroupNeedsYou, AgentStatus: "idle", AgentSeq: 1, PRNumber: 7, PRState: "OPEN", ReviewsSplit: true, NeedsMe: true}
 	o := transition(held, prev, false, t0)

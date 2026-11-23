@@ -19,7 +19,7 @@ import (
 
 // The autonomy dial: every bead has a level from 0 to 9, and every action an
 // impact class, how far its output reaches. A bead may take an action without
-// TJ when its class is at most the bead's effective level. See
+// SEB when its class is at most the bead's effective level. See
 // docs/design/autonomy-dial.md.
 const (
 	levelLabel = "autonomy:"
@@ -55,7 +55,7 @@ type AutonomyConfig struct {
 	// MergeClass raises merging in a repo, by directory name, whose main
 	// deploys on merge.
 	MergeClass map[string]int `toml:"merge_class"`
-	// Budget caps the steps a bead takes without TJ per rolling hour.
+	// Budget caps the steps a bead takes without SEB per rolling hour.
 	Budget BudgetConfig `toml:"budget"`
 
 	// The keys from before the dial, folded in by migrate.
@@ -111,7 +111,7 @@ type autonomyState struct {
 	Level *int `json:"level,omitempty"`
 	// Leases are by bead; "" is the global level's.
 	Leases map[string]autonomyLease `json:"leases,omitempty"`
-	// Breakers are the beads the circuit breaker capped, until TJ sets a level.
+	// Breakers are the beads the circuit breaker capped, until SEB sets a level.
 	Breakers map[string]autonomyBreaker `json:"breakers,omitempty"`
 }
 
@@ -141,7 +141,7 @@ func loadAutonomy() (autonomyState, error) {
 }
 
 // saveAutonomy replaces the state file. shortcut: two writers at once (the
-// ticker expiring a lease while TJ sets a level) lose one write; lock it if
+// ticker expiring a lease while SEB sets a level) lose one write; lock it if
 // that is ever seen.
 func saveAutonomy(s autonomyState) error {
 	b, err := json.MarshalIndent(s, "", "  ")
@@ -371,11 +371,11 @@ func parseAmount(amount string) (int64, error) {
 var errNotAutonomous = errors.New("not autonomous")
 
 // enforce is the check quartermaster's own commands run before a step on b
-// that by takes for TJ (D6). TJ's own steps go ahead; anyone else's need b's
+// that by takes for SEB (D6). SEB's own steps go ahead; anyone else's need b's
 // level to reach the action's class. It returns the AUTO: prefix to note the
-// step with, "" for TJ.
+// step with, "" for SEB.
 func (c Config) enforce(b Bead, action, by string) (string, error) {
-	if by == "TJ" {
+	if by == "SEB" {
 		return "", nil
 	}
 	class, err := c.actionClass(b, action, "", "")
@@ -387,7 +387,7 @@ func (c Config) enforce(b Bead, action, by string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Steps taken for TJ count against the budget and are journaled like a
+	// Steps taken for SEB count against the budget and are journaled like a
 	// passing check.
 	now := time.Now()
 	recs, err := readJournal(now.Add(-budgetWindow))
@@ -395,7 +395,7 @@ func (c Config) enforce(b Bead, action, by string) (string, error) {
 		return "", err
 	}
 	if spent := budgetSpent(c.Autonomy.Budget, recs, b.ID, class, action); spent != "" {
-		return "", fmt.Errorf("%w: %s; ask TJ, and on their go rerun with --by TJ", errNotAutonomous, spent)
+		return "", fmt.Errorf("%w: %s; ask SEB, and on their go rerun with --by SEB", errNotAutonomous, spent)
 	}
 	return prefix, appendJournal(journalRecord{At: now, Kind: journalCheck, Bead: b.ID, Class: class, Action: action, Pass: true, Text: "by " + by})
 }
@@ -403,20 +403,20 @@ func (c Config) enforce(b Bead, action, by string) (string, error) {
 // allow says whether by may take what, of class, on bead id at level lvl
 // (capped by why), and the AUTO: prefix to note it with.
 func allow(id, by, what string, class, lvl int, why string) (string, error) {
-	if by == "TJ" {
+	if by == "SEB" {
 		return "", nil
 	}
 	if class > lvl {
 		if why != "" {
 			why = ", capped by " + why
 		}
-		return "", fmt.Errorf("%w: %s (class %d) is above %s's level %d%s; ask TJ, and on their go rerun with --by TJ", errNotAutonomous, what, class, id, lvl, why)
+		return "", fmt.Errorf("%w: %s (class %d) is above %s's level %d%s; ask SEB, and on their go rerun with --by SEB", errNotAutonomous, what, class, id, lvl, why)
 	}
 	return fmt.Sprintf("AUTO: [%s L%d C%d]", by, lvl, class), nil
 }
 
 // selfRepo is quartermaster's own repository. Only its beads may install
-// without TJ: installing a merged PR there is a local pull, build and ticker
+// without SEB: installing a merged PR there is a local pull, build and ticker
 // restart, not a deploy. Every other repo's installs and deploys go through
 // apply and gate plan.
 const selfRepo = "herdr-quartermaster"
@@ -440,7 +440,7 @@ const autonomyUsage = "usage: quartermaster autonomy level [N|- [<bead>...] [--f
 
 // autonomyCmd is `quartermaster autonomy`. check fails (exit 1) unless the
 // bead may take the step now; a worker runs it before every step it takes
-// without TJ, so a level change reaches a running worker at its next step.
+// without SEB, so a level change reaches a running worker at its next step.
 // level shows or sets the dial; grant and revoke are level 7 and 2.
 func autonomyCmd(cfg Config, env autonomyEnv, pos []string, o autonomyOpts, w io.Writer) error {
 	if len(pos) == 0 {
@@ -460,7 +460,7 @@ func autonomyCmd(cfg Config, env autonomyEnv, pos []string, o autonomyOpts, w io
 		if err := writeAtomic(autonomyStopPath(), []byte(now.Format(time.RFC3339)+"\n")); err != nil {
 			return err
 		}
-		fmt.Fprintf(w, "autonomy off: every bead is capped at level %d, so its worker stops for TJ at its next step above it\n", stopCap)
+		fmt.Fprintf(w, "autonomy off: every bead is capped at level %d, so its worker stops for SEB at its next step above it\n", stopCap)
 	case "status", "level":
 		if len(pos) == 1 {
 			s, err := loadAutonomy()
@@ -492,7 +492,7 @@ func autonomyCmd(cfg Config, env autonomyEnv, pos []string, o autonomyOpts, w io
 			return err
 		}
 		for _, id := range pos[2:] {
-			msg, err := setLevel(cfg, env, id, n, o.For, "TJ", now)
+			msg, err := setLevel(cfg, env, id, n, o.For, "SEB", now)
 			if msg != "" {
 				fmt.Fprintln(w, msg)
 			}
@@ -543,7 +543,7 @@ func autonomyCmd(cfg Config, env autonomyEnv, pos []string, o autonomyOpts, w io
 			if why != "" {
 				why = ", capped by " + why
 			}
-			fail = fmt.Errorf("%w: %s is above %s's level %d%s; stop for TJ as usual", errNotAutonomous, what, b.ID, lvl, why)
+			fail = fmt.Errorf("%w: %s is above %s's level %d%s; stop for SEB as usual", errNotAutonomous, what, b.ID, lvl, why)
 		}
 		// A bare check is a probe, not a step: it is neither journaled nor
 		// counted against the bead.
@@ -551,7 +551,7 @@ func autonomyCmd(cfg Config, env autonomyEnv, pos []string, o autonomyOpts, w io
 			if fail != nil {
 				return fail
 			}
-			fmt.Fprintf(w, "%s may take %s without TJ (level %d; advisory)\n", b.ID, what, lvl)
+			fmt.Fprintf(w, "%s may take %s without SEB (level %d; advisory)\n", b.ID, what, lvl)
 			return nil
 		}
 		recs, err := readJournal(now.Add(-budgetWindow))
@@ -559,7 +559,7 @@ func autonomyCmd(cfg Config, env autonomyEnv, pos []string, o autonomyOpts, w io
 			return err
 		}
 		if spent := budgetSpent(cfg.Autonomy.Budget, recs, b.ID, class, o.Action); fail == nil && spent != "" {
-			fail = fmt.Errorf("%w: %s; stop for TJ as usual", errNotAutonomous, spent)
+			fail = fmt.Errorf("%w: %s; stop for SEB as usual", errNotAutonomous, spent)
 		}
 		rec := journalRecord{At: now, Kind: journalCheck, Bead: b.ID, Class: class, Action: o.Action, Amount: o.Amount, Pass: fail == nil}
 		if fail != nil {
@@ -574,7 +574,7 @@ func autonomyCmd(cfg Config, env autonomyEnv, pos []string, o autonomyOpts, w io
 			}
 			return fail
 		}
-		fmt.Fprintf(w, "%s may take %s without TJ (level %d; advisory)\n", b.ID, what, lvl)
+		fmt.Fprintf(w, "%s may take %s without SEB (level %d; advisory)\n", b.ID, what, lvl)
 	case "grant", "revoke":
 		if len(pos) != 2 {
 			return errors.New(autonomyUsage)
@@ -583,7 +583,7 @@ func autonomyCmd(cfg Config, env autonomyEnv, pos []string, o autonomyOpts, w io
 		if pos[0] == "revoke" {
 			n = levelSupervised
 		}
-		msg, err := setLevel(cfg, env, pos[1], n, 0, "TJ", now)
+		msg, err := setLevel(cfg, env, pos[1], n, 0, "SEB", now)
 		if msg != "" {
 			fmt.Fprintln(w, msg)
 		}
@@ -639,7 +639,7 @@ func autonomyStatus(a AutonomyConfig, s autonomyState, stopped bool, active []Be
 }
 
 // dialContext is the dial as the coordinator reads it every turn: the global
-// level, its leases and caps, and how much to report of what ran without TJ.
+// level, its leases and caps, and how much to report of what ran without SEB.
 func dialContext(a AutonomyConfig, now time.Time) string {
 	s, err := loadAutonomy()
 	if err != nil {
@@ -651,11 +651,11 @@ func dialContext(a AutonomyConfig, now time.Time) string {
 }
 
 // reportingMode is how much the coordinator says about steps that ran
-// without TJ at global level g. What waits on TJ is always reported.
+// without SEB at global level g. What waits on SEB is always reported.
 func reportingMode(g int) string {
 	switch {
 	case g <= 3:
-		return "tell TJ each AUTO: step as it happens"
+		return "tell SEB each AUTO: step as it happens"
 	case g <= 6:
 		return "one line per update listing the AUTO: steps since the last"
 	}
@@ -663,7 +663,7 @@ func reportingMode(g int) string {
 }
 
 // autoNotes are a bead's AUTO: notes, oldest first: each step its worker took
-// without TJ. The prefix is case-sensitive; the ticker's own "auto:" notes
+// without SEB. The prefix is case-sensitive; the ticker's own "auto:" notes
 // are not decisions.
 func autoNotes(notes string) []string {
 	var out []string
@@ -676,7 +676,7 @@ func autoNotes(notes string) []string {
 }
 
 // dialBrief is the part of every brief that says what its worker may do
-// without TJ: the ladder, the check before each step, and the notes it
+// without SEB: the ladder, the check before each step, and the notes it
 // leaves. It is the only grant: automated messages from the ticker or
 // coordinator still approve nothing.
 func dialBrief(id string) string {
@@ -700,8 +700,8 @@ A step takes the highest class among its effects, including what it sets off (a 
 `
 }
 
-// A level change mid-flight. TJ runs `quartermaster autonomy level N <bead>`
-// (or grant/revoke, the board's U key, or the coordinator on TJ's explicit
+// A level change mid-flight. SEB runs `quartermaster autonomy level N <bead>`
+// (or grant/revoke, the board's U key, or the coordinator on SEB's explicit
 // word); the ticker only lowers one, when a lease expires. The labels are the
 // grant: the notice only tells a running worker, which trusts it only as far
 // as `autonomy check` passes.
@@ -716,7 +716,7 @@ func levelNotice(id string, n int, by string) string {
 }
 
 // heldNotice says a queued notice must wait: one that lowers a worker whose
-// bead is at needs_me would read as TJ's answer and resume it, and its next
+// bead is at needs_me would read as SEB's answer and resume it, and its next
 // check fails anyway. One at the autonomous level goes through, so the worker
 // can take its recommendation.
 func heldNotice(text string, needsMe bool) bool {
@@ -875,8 +875,8 @@ func setLevel(cfg Config, env autonomyEnv, id string, n int, d time.Duration, by
 		prev = &p
 	}
 	s.lease(id, n, d, prev, now)
-	// Only TJ lifts a breaker; a lease expiring doesn't.
-	if by == "TJ" {
+	// Only SEB lifts a breaker; a lease expiring doesn't.
+	if by == "SEB" {
 		delete(s.Breakers, id)
 	}
 	// The lease goes first: a level label without its lease is capped at max.
@@ -921,7 +921,7 @@ func setLevel(cfg Config, env autonomyEnv, id string, n int, d time.Duration, by
 // expireLeases puts each lapsed 8 or 9 back to the level it replaced, notes
 // it, and returns an inbox event for each, so expiry doesn't wait on the
 // worker. The effective level already ignored a lease once it lapsed; this
-// brings the labels and TJ up to date.
+// brings the labels and SEB up to date.
 func expireLeases(cfg Config, env autonomyEnv, now time.Time) ([]Event, error) {
 	s, err := loadAutonomy()
 	if err != nil {

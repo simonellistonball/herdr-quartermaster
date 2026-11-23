@@ -262,7 +262,7 @@ func TestAnswerPrompt(t *testing.T) {
 	bash := screen(t, "claude-bash-4.txt")
 	p, _ := parsePrompt(bash)
 	f := &fakePane{screens: []string{bash, screen(t, "claude-idle.txt")}}
-	msg, err := answerPrompt(f.env(), "backend-ab12", "1", p.Hash, "TJ", -1)
+	msg, err := answerPrompt(f.env(), "backend-ab12", "1", p.Hash, "SEB", -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestAnswerPrompt(t *testing.T) {
 	if !strings.Contains(msg, "1 Yes") {
 		t.Errorf("msg = %q", msg)
 	}
-	want := "PROMPT ANSWERED: 1 Yes to Bash command: Create out2 directory and touch hello.txt [" + p.Hash + "] by TJ"
+	want := "PROMPT ANSWERED: 1 Yes to Bash command: Create out2 directory and touch hello.txt [" + p.Hash + "] by SEB"
 	if !slices.Equal(f.notes, []string{want}) {
 		t.Errorf("notes = %q", f.notes)
 	}
@@ -285,7 +285,7 @@ func TestAnswerPromptMuse(t *testing.T) {
 		t.Fatal("no prompt found")
 	}
 	f := &fakePane{screens: []string{bash, screen(t, "muse-idle.txt")}}
-	msg, err := answerPrompt(f.env(), "backend-ab12", "1", p.Hash, "TJ", -1)
+	msg, err := answerPrompt(f.env(), "backend-ab12", "1", p.Hash, "SEB", -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,12 +295,12 @@ func TestAnswerPromptMuse(t *testing.T) {
 	if !strings.Contains(msg, "1 Yes, proceed (y)") {
 		t.Errorf("msg = %q", msg)
 	}
-	if len(f.notes) != 1 || !strings.HasPrefix(f.notes[0], "PROMPT ANSWERED: 1 Yes, proceed (y) to ") || !strings.Contains(f.notes[0], "["+p.Hash+"] by TJ") {
+	if len(f.notes) != 1 || !strings.HasPrefix(f.notes[0], "PROMPT ANSWERED: 1 Yes, proceed (y) to ") || !strings.Contains(f.notes[0], "["+p.Hash+"] by SEB") {
 		t.Errorf("notes = %q", f.notes)
 	}
 	// The usual refusal: a hash read from an earlier (different) prompt.
 	stale := &fakePane{screens: []string{screen(t, "muse-bash-2.txt")}}
-	if _, err := answerPrompt(stale.env(), "backend-ab12", "1", p.Hash, "TJ", -1); err == nil || !strings.Contains(err.Error(), "the prompt changed") {
+	if _, err := answerPrompt(stale.env(), "backend-ab12", "1", p.Hash, "SEB", -1); err == nil || !strings.Contains(err.Error(), "the prompt changed") {
 		t.Fatalf("stale hash: err = %v", err)
 	}
 	if len(stale.sent) != 0 || len(stale.notes) != 0 {
@@ -406,7 +406,7 @@ func TestAnswerPromptEnforcesLevel(t *testing.T) {
 		{"mode switch", bash, "3", "coordinator", 2, 7, ""},
 		{"classifier denial", deny, "1", "coordinator", 1, 7, ""},
 		{"classifier denial at 9", deny, "1", "coordinator", 1, 9, "AUTO: [coordinator L9 C9]"},
-		{"TJ", deny, "2", "TJ", -1, 0, "PROMPT ANSWERED: 2 Yes, and don't ask"},
+		{"SEB", deny, "2", "SEB", -1, 0, "PROMPT ANSWERED: 2 Yes, and don't ask"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			p, _ := parsePrompt(c.screen)

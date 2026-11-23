@@ -168,7 +168,7 @@ func closable(b Bead, openChildren int) string {
 	case b.HasLabel(LabelRollingOut):
 		return "rolling out"
 	case b.Status == StatusNeedsMe:
-		return "waiting on TJ"
+		return "waiting on SEB"
 	case b.Status == StatusBlocked:
 		return "blocked"
 	case b.Type == "epic":
@@ -448,7 +448,7 @@ func verifySearch(slug string, b Bead, key string) string {
 func applyVerdict(env verifyEnv, v verdict, now time.Time) error {
 	switch v.Action {
 	case "close":
-		// The close is a class 3 step taken without TJ, noted like any other.
+		// The close is a class 3 step taken without SEB, noted like any other.
 		auto := fmt.Sprintf("AUTO: [verify L%d C%d] closed as already done — %s", v.Level, classHousekeeping, v.summary())
 		if err := env.note(v.Bead.ID, auto); err != nil {
 			return err
@@ -1109,7 +1109,7 @@ func stillClosable(env verifyEnv, b Bead) string {
 	return ""
 }
 
-// rejectedNote is a note turning a verdict down: the coordinator's or TJ's, or
+// rejectedNote is a note turning a verdict down: the coordinator's or SEB's, or
 // verify's own close note on a bead that was reopened since.
 var rejectedNote = regexp.MustCompile(`(?i)likely[_ -]stale( flag)? rejected|\bkeep open\b|AUTO: \[verify\b[^\]]*\] closed as already done`)
 

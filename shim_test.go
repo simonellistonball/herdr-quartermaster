@@ -247,7 +247,7 @@ func TestRunCmd(t *testing.T) {
 		t.Errorf("output %q", f.out.String())
 	}
 
-	// Waiting for TJ: nonzero, naming the digest.
+	// Waiting for SEB: nonzero, naming the digest.
 	f = newRunFixture(t, "/run/b-1.sock")
 	f.resp = execResponse{State: "waiting", Digest: "d1g", Why: "not autonomous: class 9"}
 	if err := runCmd(merge, f.r); err == nil || !strings.Contains(f.out.String(), "quartermaster plan status d1g") {
@@ -408,7 +408,7 @@ func TestExecutorRerunsFailedPlan(t *testing.T) {
 	}
 	f.digest = resp.Digest
 	if len(f.asked) != 0 {
-		t.Errorf("a pending check asked TJ: %v", f.asked)
+		t.Errorf("a pending check asked SEB: %v", f.asked)
 	}
 	f.r.preErr = nil
 	resp = f.x.submit(context.Background(), "b-1", plan)

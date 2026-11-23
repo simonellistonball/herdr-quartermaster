@@ -247,7 +247,7 @@ func TestRPCAdoptionPrepareCheckpoint(t *testing.T) {
 	defer func() { child.Process.Kill(); child.Wait() }()
 	info := adoptionProcessInfo{ShellPID: os.Getpid(), Procs: []adoptionProcess{{PID: child.Process.Pid, Argv: argv, Cwd: cwd}}}
 	h := adoptionHerdr(t, []Agent{source}, info, []Worktree{{Linked: true, Path: cwd, Branch: "tj/b-1-work"}})
-	b := Bead{ID: "b-1", Status: StatusNeedsMe, Assignee: "pi", Notes: "RUN: forbidden-command; awaiting TJ"}
+	b := Bead{ID: "b-1", Status: StatusNeedsMe, Assignee: "pi", Notes: "RUN: forbidden-command; awaiting SEB"}
 	if err := rpcPrepare(cfg, h, b, source.PaneID); err != nil {
 		t.Fatal(err)
 	}

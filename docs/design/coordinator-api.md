@@ -1,8 +1,8 @@
 # Coordinator API: the desktop coordinator ↔ Muse app agent contract
 
-Status: **proposed** (2026-11-23, bead backend-hvez) for TJ's approval.
-Design ping-pong rounds 1–3 (2026-11-22, relayed by TJ) agreed the surface
-below; TJ decided the four open questions the same day (see
+Status: **proposed** (2026-11-23, bead backend-hvez) for SEB's approval.
+Design ping-pong rounds 1–3 (2026-11-22, relayed by SEB) agreed the surface
+below; SEB decided the four open questions the same day (see
 [Decisions](#decisions-tjs-2026-11-22)). Nothing here is implemented yet:
 each piece is a named follow-up bead (see
 [Follow-ups](#follow-ups)). This bead changes no production or live-machine
@@ -10,10 +10,10 @@ state.
 
 ## Summary
 
-Two agents talk to TJ about the same beads. The **desktop coordinator**
+Two agents talk to SEB about the same beads. The **desktop coordinator**
 executes: it dispatches workers, follows PRs, answers what its autonomy
-level allows, and closes beads. The **Muse app agent** is TJ-facing: it
-surfaces decisions, relays TJ's answers, and verifies outcomes by
+level allows, and closes beads. The **Muse app agent** is SEB-facing: it
+surfaces decisions, relays SEB's answers, and verifies outcomes by
 independent read. Without a contract, that split degrades into two agents
 paraphrasing each other's prose, with no way to tell "the coordinator says
 it merged" from "it merged".
@@ -37,30 +37,30 @@ This spec is that contract, in four parts:
 
 | | Desktop coordinator | Muse app agent |
 |---|---|---|
-| Owns | Execution: dispatch, follow-up, merge/close within the autonomy dial | TJ's attention: which decisions surface, in what words, and when |
-| Talks to TJ | When TJ is in the coordinator session | The phone surface; renders decisions, never raw dumps |
+| Owns | Execution: dispatch, follow-up, merge/close within the autonomy dial | SEB's attention: which decisions surface, in what words, and when |
+| Talks to SEB | When SEB is in the coordinator session | The phone surface; renders decisions, never raw dumps |
 | Trusts | Bead state, PR state, its own command output | Only independent reads: fresh bead status, PR state, tap receipts — never coordinator prose |
 | Never | Does the bead's work itself | Executes, dispatches, or answers a question itself |
 
 **One driver.** The desktop ticker is the only loop. It already follows
 every thread, writes the durable inbox (`stateDir()/inbox`, one JSON file
 per event), nudges the coordinator, and serves taps. The app adds **no
-second hourly loop, poller, or scheduler**; everything it shows TJ derives
+second hourly loop, poller, or scheduler**; everything it shows SEB derives
 from a read (`context`, `inbox --questions`, `show`) or from a coordinator
 reply it then verifies. Two drivers would double-notify and could act on
 the same prompt twice; the at-most-once machinery below assumes one.
 
 **Verification is the app's job, and it is mechanical.** When a
 coordinator reply claims an outcome, the app confirms it before telling
-TJ: `pr_state` against `gh`, `bead_status` against a fresh `show`, a tap
+SEB: `pr_state` against `gh`, `bead_status` against a fresh `show`, a tap
 answer against the `NEEDS_ME ANSWERED:` / `PROMPT ANSWERED:` note the tap
 path already writes. A claim that does not verify is reported as
 unverified, with the read that disagreed — never smoothed over.
 
 ## The gate vocabulary
 
-TJ's decisions reach the coordinator as one of eight verbs. The app
-normalizes whatever TJ did — a tap, a typed word or number, its own
+SEB's decisions reach the coordinator as one of eight verbs. The app
+normalizes whatever SEB did — a tap, a typed word or number, its own
 same-second `answered:` notification — into this vocabulary before
 anything acts on it.
 
@@ -73,7 +73,7 @@ anything acts on it.
 | `RESUME` | bead | Unpark / restart its worker | `quartermaster resume <bead>` |
 | `STATUS` | bead (or none, see below) | Report current state, change nothing | a status-block reply from fresh reads |
 | `STOP` | bead | Stop its worker now | stop the agent; bead stays claimed |
-| `ANSWER` | bead + option or free text | TJ's answer to its live question/prompt | `quartermaster answer` / the needs_me answer path |
+| `ANSWER` | bead + option or free text | SEB's answer to its live question/prompt | `quartermaster answer` / the needs_me answer path |
 
 Rules:
 
@@ -88,15 +88,15 @@ Rules:
 - **Bare-verb echo at class ≥ 4.** Before acting on a bare verb whose
   step is class 4 or higher, the coordinator first replies with the
   resolved form (`MERGE backend-hvez — PR #91, head abc1234`) and waits
-  for TJ's confirmation relayed by the app. Explicit-target verbs need
+  for SEB's confirmation relayed by the app. Explicit-target verbs need
   no echo. This is the guard against "merge it" landing on the wrong
   thread after the conversation moved on.
 - **`STATUS` with no target** is the one total exception: it means the
   compact fleet summary (`context --compact`), not a bead.
-- **A verb is TJ's instruction, relayed.** The app sends only what TJ
+- **A verb is SEB's instruction, relayed.** The app sends only what SEB
   said or tapped, normalized. It does not invent verbs from ticker text,
   worker prose, or its own judgment, and it never forwards ticker text
-  verbatim as if it were TJ's words. Ticker-originated messages approve
+  verbatim as if it were SEB's words. Ticker-originated messages approve
   nothing, per the standing rule.
 
 ## Action prompts and the status block
@@ -110,18 +110,18 @@ Every action prompt is one line:
 ```
 
 ```text
-[req:app-20261123-0017] ANSWER backend-iarz.1 2 — TJ tapped option 2 at 21:32
+[req:app-20261123-0017] ANSWER backend-iarz.1 2 — SEB tapped option 2 at 21:32
 ```
 
 - `<id>` is app-chosen, unique per request, `[a-z0-9-]{1,64}`. It is a
   correlation tag, not a capability: knowing it authorizes nothing.
 - The *why* is written for the audit trail. When the coordinator acts,
   the why becomes the note text (folded into its `AUTO:` / answer note),
-  so the bead records TJ's reason, not the coordinator's paraphrase.
+  so the bead records SEB's reason, not the coordinator's paraphrase.
 - One prompt per message, one question per message, bead/PR in the first
-  line. The app never sends a raw `context` dump to TJ or to the
+  line. The app never sends a raw `context` dump to SEB or to the
   coordinator; it reads `--compact`/`--section` and renders.
-- The moment TJ answers by any route — tap, typed word, in the desktop
+- The moment SEB answers by any route — tap, typed word, in the desktop
   session — the app also sends a same-second notification so the other
   surface stops presenting the question as open:
 
@@ -131,12 +131,12 @@ Every action prompt is one line:
 
   This is informational. The tap path itself already unblocks the worker
   (see [approval taps](../approval-taps.md)); `answered:` keeps the two
-  TJ-facing surfaces from double-asking.
+  SEB-facing surfaces from double-asking.
 
 ### Status block (coordinator → app)
 
 Every coordinator reply that reports an **action** ends with exactly one
-fenced block. Pure chat (explanations, discussion, a question back to TJ)
+fenced block. Pure chat (explanations, discussion, a question back to SEB)
 carries no block. The reply's first line also repeats the request tag, so
 correlation survives a client that strips fences:
 
@@ -167,8 +167,8 @@ value   := [^ \t\r\n]+             ; single token, never quoted
 
 Unknown keys are ignored by readers; new keys may be added without a
 version bump. `state=blocked` means the action could not complete for a
-reason that is not TJ's to decide (tool failure, missing precondition);
-`state=needs_tj` means it stopped at a decision only TJ can make, which
+reason that is not SEB's to decide (tool failure, missing precondition);
+`state=needs_tj` means it stopped at a decision only SEB can make, which
 the reply's prose states as one question.
 
 Worked example — this is the whole reply:
@@ -197,14 +197,14 @@ python3 -c 'import re,sys; m=re.search(r"```qm-status\n(.*?)```", sys.stdin.read
 The status block is a **claim**, and the app treats it as one: it exists
 so the app knows *what to verify*, compactly. `bead_status` is checked
 against `quartermaster show`, `pr_state`/`checks`/`head` against `gh`,
-before TJ is told the outcome.
+before SEB is told the outcome.
 
 ## Cadence
 
-- Class ≥ 7 blockers surface to TJ **immediately**.
+- Class ≥ 7 blockers surface to SEB **immediately**.
 - Everything else batches **hourly**, aligned with the existing digest
   timer — the app renders the batch, it does not run its own.
-- **No quiet window** (TJ, 2026-11-22): prompts are not held overnight.
+- **No quiet window** (SEB, 2026-11-22): prompts are not held overnight.
   Notification timing is the phone's Do Not Disturb, not quartermaster's
   business. The proposed 23:00–07:00 ET hold is rejected, not deferred.
 
@@ -271,7 +271,7 @@ Shape (field names follow the existing `Thread`/`Event` JSON tags):
 
 ### `quartermaster inbox --questions --json`
 
-The one call the app makes to learn *what TJ must decide right now*. It
+The one call the app makes to learn *what SEB must decide right now*. It
 joins the two live question sources quartermaster already parses — a
 worker's approval prompt (`prompt.go`) and a `needs_me` OPTIONS question
 (`tapquestion.go`, via `liveQuestion`) — into one array:
@@ -309,7 +309,7 @@ quartermaster inbox --questions --json
   the tap/answer path, exactly as today.
 - `expires` is null today and reserved for rows derived from minted tap
   links; a question row itself never expires.
-- `RUN:` beads never appear (they are commands for TJ to run, not
+- `RUN:` beads never appear (they are commands for SEB to run, not
   questions), already-answered questions never appear, and the command
   mints nothing and marks nothing done. `inbox done` keeps its current
   meaning; `--questions` is a read.
@@ -339,8 +339,8 @@ wrappers exist only because reads are what the app does constantly.
 Today links reach the phone two ways: the ticker mints them into an inbox
 event, and the coordinator mints them with `quartermaster tap links
 <bead>` and relays them in its reply. Both leave the app dependent on
-timing — an inbox event's links may be 14 minutes old when TJ opens the
-app. TJ approved (2026-11-22) growing the listener instead:
+timing — an inbox event's links may be 14 minutes old when SEB opens the
+app. SEB approved (2026-11-22) growing the listener instead:
 
 ```http
 GET /tap-links/backend-iarz.1 HTTP/1.1
@@ -387,18 +387,18 @@ exist. They are never written to the inbox, the journal, a bead note, or
 any log — the journal records the mint event (bead, device, count, *no
 URLs*), and refusals as `TAP REFUSED:` like today's. The app must not
 store, republish, cache, or reuse them beyond presenting the buttons;
-when TJ reopens the question, it calls again. Until this endpoint
+when SEB reopens the question, it calls again. Until this endpoint
 lands, the interim stands: the coordinator includes freshly minted links
 in its reply payloads, as it does today.
 
 Errors: `403` (not tailnet / device not allowed / whois failed), `404`
 (no live prompt or question), `410` is not used here — expiry belongs to
 the links themselves. One bead per call; no listing route (listing what
-needs TJ is `inbox --questions`, which mints nothing).
+needs SEB is `inbox --questions`, which mints nothing).
 
 ## Free-text taps
 
-TJ's decision (2026-11-22): the tap flow must let him write free text —
+SEB's decision (2026-11-22): the tap flow must let him write free text —
 more detail, a different option, or prose instead of the options —
 similar to Muse's answer affordance. This applies to `needs_me`
 questions **with and without** an OPTIONS block. (Tool approval prompts
@@ -418,17 +418,17 @@ there, and free text typed into a TUI menu is not an answer.)
 - **Length.** At most **2,000 characters** (counted in runes), enforced
   on the POST before the nonce is spent, and shown on the page. Over
   the limit is a refusal that spends nothing, like the other pre-spend
-  refusals — TJ edits and presses again on the same link.
+  refusals — SEB edits and presses again on the same link.
 - **Landing, verbatim.** The text is recorded **exactly as typed** — no
   trimming beyond a single trailing newline the form itself adds, no
   re-wrapping, no coordinator paraphrase. The answer note keeps the
   existing shape and gains the text:
 
   ```text
-  NEEDS_ME ANSWERED: free text to Which customer-hosted accounts… [95c6105e] by TJ via tap (device iphone181): Include the two accounts named in the 2026-10 agreement; leave the rest off until each signs.
+  NEEDS_ME ANSWERED: free text to Which customer-hosted accounts… [95c6105e] by SEB via tap (device iphone181): Include the two accounts named in the 2026-10 agreement; leave the rest off until each signs.
   ```
 
-  Option+text records both: `NEEDS_ME ANSWERED: 2 … [hash] by TJ via tap
+  Option+text records both: `NEEDS_ME ANSWERED: 2 … [hash] by SEB via tap
   (device …): <text>`. Then, in the existing order: the bead returns to
   `in_progress`, and the worker is prompted with the answer — option and
   text together — over its control socket when it has one, never typed
@@ -439,8 +439,8 @@ there, and free text typed into a TUI menu is not an answer.)
   A free-text answer and an option tap racing for the same question
   resolve to whichever spends first; the second is refused.
 - **The app side.** Free text through the app (not the tap page) travels
-  as `ANSWER <bead> — <TJ's text>` and the coordinator notes it verbatim
-  the same way; the audit trail must not depend on which surface TJ used.
+  as `ANSWER <bead> — <SEB's text>` and the coordinator notes it verbatim
+  the same way; the audit trail must not depend on which surface SEB used.
 
 ## The decision flow, end to end
 
@@ -451,10 +451,10 @@ worker stops (prompt / needs_me)
 coordinator is nudged ── or ── app reads inbox --questions --json
   │  one question per message; bead/PR in the first line
   ▼
-app renders for TJ: question, recommendation, class, fresh links
+app renders for SEB: question, recommendation, class, fresh links
   │  (GET /tap-links/<bead> at render time — never stored links)
   ▼
-TJ taps an option, taps with free text, or answers in chat
+SEB taps an option, taps with free text, or answers in chat
   ├─ tap ──► tap endpoint answers + unblocks the worker directly
   │          app sends "answered: <bead> option <n>" the same second
   └─ chat ─► app sends [req:id] ANSWER <bead> <n> — <why>
@@ -464,7 +464,7 @@ coordinator reply: [req:id] first line, one qm-status block last
   ▼
 app VERIFIES by independent read (show / gh / the ANSWERED note)
   ▼
-app tells TJ the verified outcome — or that it did not verify, and what disagreed
+app tells SEB the verified outcome — or that it did not verify, and what disagreed
 ```
 
 Note the asymmetry the flow preserves: a tap does not need the
@@ -485,7 +485,7 @@ it can only re-derive state from beads and PRs. That is acceptable for
 v1 because beads already are the durable record of *outcomes*; what
 tag-echo cannot give is a durable record of *requests*.
 
-**Target (TJ, 2026-11-22: true async over tag-echo): a durable job
+**Target (SEB, 2026-11-22: true async over tag-echo): a durable job
 mechanism.** Submitting a request returns a durable id immediately;
 status and result are retrievable later, by anyone, after the ticker or
 the coordinator session restarts:
@@ -569,12 +569,12 @@ and a state-machine build for a single-machine problem.
 
 **Not recommended:** Temporal — its workflow determinism and
 server-plus-DB operation buy durable *execution of code*, but our jobs
-are mostly "hold this request until TJ or a PR moves", and the org's
+are mostly "hold this request until SEB or a PR moves", and the org's
 in-product Temporal clusters must not be coupled to a single-user
 desktop tool. Valkey — a new daemon whose durability and claim semantics
 are ours to assemble, scoring below both neighbors on either side.
 Postgres — the runner-up on semantics alone, and the recommendation
-flips to it *if* TJ blesses a dedicated quartermaster instance with
+flips to it *if* SEB blesses a dedicated quartermaster instance with
 backups; the instance currently running here is someone else's and runs
 `fsync=off`, so it settles nothing today. Standing up a database to hold
 dozens of jobs a day, next to a state dir that already works, is the
@@ -582,7 +582,7 @@ cost without a present benefit.
 
 ### Does the same mechanism carry coordinator↔worker traffic?
 
-Evaluate, per TJ's question — with a boundary, not a wholesale swap:
+Evaluate, per SEB's question — with a boundary, not a wholesale swap:
 
 - **Adopt the envelope, not the transport.** Worker-directed requests
   already have durable, idempotent shapes: `quartermaster rpc tell
@@ -605,7 +605,7 @@ Evaluate, per TJ's question — with a boundary, not a wholesale swap:
   moment to stand JetStream up — with this same job interface in front
   of it, so the app and coordinator contracts do not change.
 
-## Decisions (TJ's, 2026-11-22)
+## Decisions (SEB's, 2026-11-22)
 
 All four questions this spec opened with are decided; the agreed surface
 above already reflects them, and nothing else in the spec depends on
@@ -620,7 +620,7 @@ re-deciding any of them.
 
 Recommendation lines, for the record: the spec recommended *yes* on (i)
 and (ii) as written, *true async behind the job interface with the
-state-dir store first* on (iii), and *no quiet window* on (iv). TJ's
+state-dir store first* on (iii), and *no quiet window* on (iv). SEB's
 answers match on all four, so the surface needs no contingency branches.
 
 ## Follow-ups

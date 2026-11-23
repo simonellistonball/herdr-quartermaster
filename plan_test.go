@@ -223,7 +223,7 @@ func TestPlanCheckLevelBoundary(t *testing.T) {
 		t.Errorf("merge at 3: %v", err)
 	}
 	digest := mustDigest(t, mustParse(t, mergePlan("b-1")))
-	if !strings.Contains(out, "quartermaster plan approve "+digest+" --by TJ") {
+	if !strings.Contains(out, "quartermaster plan approve "+digest+" --by SEB") {
 		t.Errorf("a failed check names the digest to approve:\n%s", out)
 	}
 	// The plan's class is its highest step's: an opaque step makes it 9,
@@ -296,31 +296,31 @@ func TestPlanApproveAndStatus(t *testing.T) {
 	c := newPlanCLI(t, "autonomy:3")
 	digest := mustDigest(t, mustParse(t, mergePlan("b-1")))
 	// Approving needs a checked plan.
-	if _, err := c.run("TJ", 0, "approve", digest); err == nil || !strings.Contains(err.Error(), "plan check first") {
+	if _, err := c.run("SEB", 0, "approve", digest); err == nil || !strings.Contains(err.Error(), "plan check first") {
 		t.Errorf("unchecked: %v", err)
 	}
 	if _, err := c.run("worker", 0, "check", c.file(mergePlan("b-1"))); err == nil {
 		t.Fatal("merge passed at 3")
 	}
 	out, err := c.run("worker", 0, "status", digest[:12])
-	if err != nil || !strings.Contains(out, "waiting for TJ") || !strings.Contains(out, "1. github.pr.merge github:acme/app#55: class 4") {
+	if err != nil || !strings.Contains(out, "waiting for SEB") || !strings.Contains(out, "1. github.pr.merge github:acme/app#55: class 4") {
 		t.Errorf("status before approval: %v\n%s", err, out)
 	}
-	// Only TJ approves.
+	// Only SEB approves.
 	for _, by := range []string{"coordinator", "worker"} {
 		if _, err := c.run(by, 0, "approve", digest); !errors.Is(err, errNotAutonomous) {
 			t.Errorf("approve by %s: %v", by, err)
 		}
 	}
-	if _, err := c.run("TJ", 0, "approve", "abc"); err == nil || !strings.Contains(err.Error(), "8 characters") {
+	if _, err := c.run("SEB", 0, "approve", "abc"); err == nil || !strings.Contains(err.Error(), "8 characters") {
 		t.Errorf("short ref: %v", err)
 	}
-	out, err = c.run("TJ", 30*time.Minute, "approve", digest[:8])
-	if err != nil || !strings.Contains(out, "approved by TJ") {
+	out, err = c.run("SEB", 30*time.Minute, "approve", digest[:8])
+	if err != nil || !strings.Contains(out, "approved by SEB") {
 		t.Fatalf("approve: %v %s", err, out)
 	}
 	out, err = c.run("worker", 0, "status", digest)
-	if err != nil || !strings.Contains(out, "approved by TJ until") {
+	if err != nil || !strings.Contains(out, "approved by SEB until") {
 		t.Errorf("status after approval: %v\n%s", err, out)
 	}
 	// The approval expires.

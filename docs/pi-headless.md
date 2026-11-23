@@ -144,7 +144,7 @@ quartermaster headless run     # foreground supervisor, normally run by a user s
 ```
 
 Enrollment and enabling/takeover check every enrolled bead's class-3 authority.
-`--by TJ` is only for commands the human actually decided to run, never an agent
+`--by SEB` is only for commands the human actually decided to run, never an agent
 workaround. Pausing always works without permission to resume a task or a live
 task database. There is no implicit default switch, batch enrollment, or automatic
 backlog activation. The initial bounded rollout holds at most 32 enrollments.

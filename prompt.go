@@ -521,13 +521,13 @@ const answerWait = 5 * time.Second
 // showing, so an answer never lands on a prompt it wasn't meant for. It then
 // waits for that prompt to go and notes the answer on the bead.
 //
-// Anyone but TJ answers only within the bead's autonomy level, by the class
+// Anyone but SEB answers only within the bead's autonomy level, by the class
 // of what the answer releases, and the note starts AUTO:.
 func answerPrompt(env promptEnv, id, choice, expect, by string, class int) (string, error) {
 	return answerPromptVia(env, id, choice, expect, by, class, "")
 }
 
-// answerPromptVia is answerPrompt with via naming how TJ's answer arrived
+// answerPromptVia is answerPrompt with via naming how SEB's answer arrived
 // (a phone tap, tap.go), appended to the PROMPT ANSWERED note so the audit
 // trail carries the transport and its identity evidence. Every guard — the
 // expected hash, the wait for the prompt to clear, the note, the journal —
@@ -552,7 +552,7 @@ func answerPromptVia(env promptEnv, id, choice, expect, by string, class int, vi
 		return "", err
 	}
 	auto := ""
-	if by != "TJ" {
+	if by != "SEB" {
 		lvl, why := env.level(id)
 		what := fmt.Sprintf("answering %d %s", o.Number, shortTitle(o.Label, 40))
 		if class < 0 {

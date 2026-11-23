@@ -53,7 +53,7 @@ func TestParseNeedsMeQuestionVariants(t *testing.T) {
 		"class in the question lines": "QUESTION: Which key?\nCLASS: 8 — read a secret\nOPTIONS:\n1. The old key\n2. A new key",
 		"critical":                    "CRITICAL: deleting the old bucket\nQUESTION: Delete it now?\nOPTIONS:\n1. Delete now\n2. Keep it a week\nCLASS: 8 — one prod delete",
 		"no class":                    "QUESTION: Tabs or spaces?\nOPTIONS:\n1. Tabs\n2. Spaces",
-		"older block superseded":      "QUESTION: First?\nOPTIONS:\n1. A\n2. B\nNEEDS_ME ANSWERED: 1 A [abcd1234] by TJ via tap\nQUESTION: Second?\nOPTIONS:\n1. C\n2. D",
+		"older block superseded":      "QUESTION: First?\nOPTIONS:\n1. A\n2. B\nNEEDS_ME ANSWERED: 1 A [abcd1234] by SEB via tap\nQUESTION: Second?\nOPTIONS:\n1. C\n2. D",
 		"blank lines in the block":    "QUESTION: Tabs or spaces?\n\nOPTIONS:\n\n1. Tabs\n\n2. Spaces\n\nCLASS: 2 — style only",
 	} {
 		if q, ok := parseNeedsMeQuestion(notes); !ok || len(q.Options) != 2 {
@@ -68,7 +68,7 @@ func TestParseNeedsMeQuestionVariants(t *testing.T) {
 	if q.ClassN != 8 || len(q.Lines) != 1 {
 		t.Errorf("class-in-question = %+v", q)
 	}
-	q, _ = parseNeedsMeQuestion("QUESTION: First?\nOPTIONS:\n1. A\n2. B\nNEEDS_ME ANSWERED: 1 A [abcd1234] by TJ via tap\nQUESTION: Second?\nOPTIONS:\n1. C\n2. D")
+	q, _ = parseNeedsMeQuestion("QUESTION: First?\nOPTIONS:\n1. A\n2. B\nNEEDS_ME ANSWERED: 1 A [abcd1234] by SEB via tap\nQUESTION: Second?\nOPTIONS:\n1. C\n2. D")
 	if q.Summary() != "Second?" {
 		t.Errorf("superseded: summary = %q", q.Summary())
 	}
@@ -82,7 +82,7 @@ func TestParseNeedsMeQuestionRejectsFreeText(t *testing.T) {
 		"not in sequence":      "QUESTION: Ship?\nOPTIONS:\n1. All\n3. One",
 		"starts at two":        "QUESTION: Ship?\nOPTIONS:\n2. All\n3. One",
 		"a later note":         questionNotes + "\nmeanwhile the canary finished",
-		"already answered":     questionNotes + "\nNEEDS_ME ANSWERED: 2 One region first [abcd1234] by TJ via tap (device iphone181)",
+		"already answered":     questionNotes + "\nNEEDS_ME ANSWERED: 2 One region first [abcd1234] by SEB via tap (device iphone181)",
 		"empty":                "",
 	} {
 		if q, ok := parseNeedsMeQuestion(notes); ok {
@@ -211,11 +211,11 @@ func TestTapAnswersQuestionEndToEnd(t *testing.T) {
 	if f.bead.Status != StatusInProgress {
 		t.Fatalf("status = %s", f.bead.Status)
 	}
-	want := "NEEDS_ME ANSWERED: 2 One region first, then the rest to " + shortTitle(q.Summary(), 80) + " [" + q.Hash + "] by TJ via tap (device iphone181)"
+	want := "NEEDS_ME ANSWERED: 2 One region first, then the rest to " + shortTitle(q.Summary(), 80) + " [" + q.Hash + "] by SEB via tap (device iphone181)"
 	if !slices.Equal(f.notes, []string{want}) {
 		t.Fatalf("notes = %q", f.notes)
 	}
-	if len(f.told) != 1 || !strings.Contains(f.told[0], "TJ answered your needs_me question") || !strings.Contains(f.told[0], "2. One region first, then the rest") {
+	if len(f.told) != 1 || !strings.Contains(f.told[0], "SEB answered your needs_me question") || !strings.Contains(f.told[0], "2. One region first, then the rest") {
 		t.Fatalf("told = %q", f.told)
 	}
 	if strings.HasPrefix(f.told[0], "[quartermaster") {

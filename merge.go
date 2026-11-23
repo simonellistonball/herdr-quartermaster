@@ -149,8 +149,8 @@ func (m mergeRunner) probe(ctx context.Context, s Step, _ string) (bool, bool, s
 
 // opaqueRunner runs an opaque step a shim lowered: the tool's argv exactly as
 // the worker gave it, from its directory. It runs only under an approval of
-// the plan's digest, which for class 9 is TJ's. It has no probe, so a crash
-// mid-step stops for TJ, and it is never retried.
+// the plan's digest, which for class 9 is SEB's. It has no probe, so a crash
+// mid-step stops for SEB, and it is never retried.
 type opaqueRunner struct {
 	run func(ctx context.Context, dir string, args ...string) ([]byte, error)
 	// tool runs pulumi and tofu, with the env the shim carried.

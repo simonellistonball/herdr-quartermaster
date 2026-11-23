@@ -290,7 +290,7 @@ quartermaster tell <bead> 'Read the bead and continue from the saved work.'
 ```
 
 `dispatch`, `resume`, `cancel` and `stop` use the existing class-3 autonomy
-check. `--by TJ` is only for a decision **actually made by TJ**, not a way for
+check. `--by SEB` is only for a decision **actually made by SEB**, not a way for
 an agent to override the dial. The worker receives the normal brief, Beads
 identity, guard extension, configured environment, and executor socket/shims
 when the executor is running. No shell/PTY or pane is created. A native worker

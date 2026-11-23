@@ -200,20 +200,20 @@ func TestPiControlAsk(t *testing.T) {
 	if ask == nil || ask.Command != "git push --force origin x" || ask.Reason != "force push rewrites history" || len(ask.Options) != 2 {
 		t.Fatalf("ask = %+v", ask)
 	}
-	if err := c.Answer("nope", 1, "TJ"); err == nil {
+	if err := c.Answer("nope", 1, "SEB"); err == nil {
 		t.Error("answered an ask that isn't waiting")
 	}
-	if err := c.Answer(ask.ID, 3, "TJ"); err == nil {
+	if err := c.Answer(ask.ID, 3, "SEB"); err == nil {
 		t.Error("answered with no such option")
 	}
-	if err := c.Answer(ask.ID, 1, "TJ"); err != nil {
+	if err := c.Answer(ask.ID, 1, "SEB"); err != nil {
 		t.Fatal(err)
 	}
 	m, seen := h.next(func(m map[string]any) bool { return m["tool"] != nil })
 	if m["block"] != false {
 		t.Errorf("yes still blocked: %v", m)
 	}
-	if !hasEntry(seen, "quartermaster.ask", "id", ask.ID) || !hasEntry(seen, "quartermaster.answer", "by", "TJ") {
+	if !hasEntry(seen, "quartermaster.ask", "id", ask.ID) || !hasEntry(seen, "quartermaster.answer", "by", "SEB") {
 		t.Errorf("session entries: %v", seen)
 	}
 	if a, _ := c.Ask(); a != nil {

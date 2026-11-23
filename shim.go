@@ -242,7 +242,7 @@ func lowerGH(args []string, l ghLookup) (s Step, ok bool, err error) {
 	return Step{}, false, nil
 }
 
-// opaqueGH is argv as an opaque step: class 9, run only with TJ's approval,
+// opaqueGH is argv as an opaque step: class 9, run only with SEB's approval,
 // exactly as given, from the worker's directory.
 func opaqueGH(args []string, l ghLookup, why string) (Step, bool, error) {
 	argv, _ := json.Marshal(args)

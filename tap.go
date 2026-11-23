@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-// Approval taps: TJ answers a worker's approval prompt — or its needs_me
+// Approval taps: SEB answers a worker's approval prompt — or its needs_me
 // question, when the worker wrote it with enumerated options
 // (tapquestion.go) — from his phone by tapping a signed, one-time link. The
 // link is bound to one bead, one prompt or question instance (its --expect
@@ -33,7 +33,7 @@ import (
 // [tap] devices, and answers through answerPromptVia or answerNeedsMeVia,
 // so every guard of the guarded paths — the hash re-read, the wait for the
 // prompt to clear, the audit note and the journal — applies unchanged. A
-// tap is TJ's answer (`--by TJ`); the note records the device as the
+// tap is SEB's answer (`--by SEB`); the note records the device as the
 // identity evidence. See docs/approval-taps.md. Off unless [tap] enabled;
 // only prompts parsePrompt recognizes (or a pi worker's ask) and questions
 // in the OPTIONS convention can be tapped.
@@ -366,7 +366,7 @@ func (s *tapServer) handleTap(w http.ResponseWriter, r *http.Request) {
 // confirm shows the prompt as it stands now, re-read from the worker, with a
 // button that answers it. A GET never spends the nonce or presses a key, so
 // a link unfurled or prefetched by a chat client answers nothing, and a
-// stale link is refused here before TJ can confirm it.
+// stale link is refused here before SEB can confirm it.
 func (s *tapServer) confirm(w http.ResponseWriter, c tapClaims, ident tapIdentity) {
 	p, _, _, err := workerPrompt(s.env, c.Bead)
 	if err != nil {
@@ -426,7 +426,7 @@ func (s *tapServer) confirmQuestion(w http.ResponseWriter, c tapClaims, ident ta
 }
 
 // answer spends the nonce, then hands over to the same guarded paths as
-// `quartermaster answer ... --by TJ` for a prompt and a coordinator's
+// `quartermaster answer ... --by SEB` for a prompt and a coordinator's
 // relayed answer for a question: each re-reads its target, refuses a
 // changed one, and notes the answer on the bead with the tapping device as
 // the identity evidence.
@@ -451,7 +451,7 @@ func (s *tapServer) answer(w http.ResponseWriter, c tapClaims, ident tapIdentity
 			return
 		}
 	} else {
-		msg, err = answerPromptVia(s.env, c.Bead, c.Choice, c.Hash, "TJ", -1, via)
+		msg, err = answerPromptVia(s.env, c.Bead, c.Choice, c.Hash, "SEB", -1, via)
 		if err != nil {
 			s.refuse(w, http.StatusConflict, c.Bead, "the tap was recorded but the prompt was not answered: "+err.Error())
 			return
@@ -470,7 +470,7 @@ var tapConfirmTmpl = template.Must(template.New("confirm").Parse(`<!DOCTYPE html
 <h1>{{.Bead}}: {{.Summary}}</h1>
 <pre>{{.Text}}</pre>
 <form method="post"><button type="submit">Answer {{.Number}}. {{.Option}}</button></form>
-<p>You are answering as TJ from {{.Device}}. Anything else: close this page.</p>
+<p>You are answering as SEB from {{.Device}}. Anything else: close this page.</p>
 </body></html>`))
 
 var tapPageTmpl = template.Must(template.New("page").Parse(`<!DOCTYPE html>
@@ -525,7 +525,7 @@ func mintTapLinksFor(secret []byte, base, kind, bead, hash string, opts []Prompt
 // tapLinksText is `quartermaster tap links <bead>`: one signed link per
 // option of the prompt the worker is showing now — or, when it shows none,
 // of the OPTIONS question its needs_me bead ends with — for the coordinator
-// to relay verbatim or TJ to open himself. It mints nothing when taps are
+// to relay verbatim or SEB to open himself. It mints nothing when taps are
 // off, when neither is waiting, or when this machine has no tailnet address
 // for the links to point at.
 func tapLinksText(cfg Config, env promptEnv, id string, now time.Time) (string, error) {
@@ -559,7 +559,7 @@ func tapLinksText(cfg Config, env promptEnv, id string, now time.Time) (string, 
 	}
 	var s strings.Builder
 	fmt.Fprintf(&s, "%s (%s) is at a prompt [%s]\n%s", a.Name, a.Status, p.Hash, p.String())
-	fmt.Fprintf(&s, "tap to answer as TJ (one use each, expires %s):\n", links[0].Exp.Format("15:04"))
+	fmt.Fprintf(&s, "tap to answer as SEB (one use each, expires %s):\n", links[0].Exp.Format("15:04"))
 	for _, l := range links {
 		fmt.Fprintf(&s, "%d %s — %s\n", l.Option.Number, l.Option.Label, l.URL)
 	}
@@ -586,7 +586,7 @@ func questionLinksText(cfg Config, env promptEnv, id string, now time.Time) (str
 	}
 	var s strings.Builder
 	fmt.Fprintf(&s, "%s is marked needs_me [%s]\n%s", id, q.Hash, q.String())
-	fmt.Fprintf(&s, "tap to answer as TJ (one use each, expires %s):\n", links[0].Exp.Format("15:04"))
+	fmt.Fprintf(&s, "tap to answer as SEB (one use each, expires %s):\n", links[0].Exp.Format("15:04"))
 	for _, l := range links {
 		fmt.Fprintf(&s, "%d %s — %s\n", l.Option.Number, l.Option.Label, l.URL)
 	}
@@ -624,7 +624,7 @@ func (t Ticker) tapEventSuffix(th Thread) string {
 	// command, not only its description. The tap's confirm page re-reads and
 	// shows them again before anything is answered.
 	actual := shortTitle(strings.Join(th.Prompt.Lines, " / "), 300)
-	return "; prompt: " + actual + "; tap to answer as TJ (one use each, expires " + links[0].Exp.Format("15:04") + "): " + strings.Join(parts, " · ")
+	return "; prompt: " + actual + "; tap to answer as SEB (one use each, expires " + links[0].Exp.Format("15:04") + "): " + strings.Join(parts, " · ")
 }
 
 // tapQuestionEventSuffix is tapEventSuffix for a needs_me thread's OPTIONS
@@ -659,7 +659,7 @@ func (t Ticker) tapQuestionEventSuffix(th Thread) string {
 		parts = append(parts, fmt.Sprintf("%d %s %s", l.Option.Number, shortTitle(l.Option.Label, 50), l.URL))
 	}
 	question := shortTitle(strings.Join(q.Lines, " / "), 300)
-	return "; question: " + question + "; tap to answer as TJ (one use each, expires " + links[0].Exp.Format("15:04") + "): " + strings.Join(parts, " · ")
+	return "; question: " + question + "; tap to answer as SEB (one use each, expires " + links[0].Exp.Format("15:04") + "): " + strings.Join(parts, " · ")
 }
 
 // startTapServer binds the tap endpoint to the tailnet address and serves in

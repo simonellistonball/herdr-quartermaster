@@ -23,7 +23,7 @@ import (
 // its own directory, previews there and saves the plan (`pulumi preview
 // --save-plan`, `tofu plan -out`), classifies the preview with gate's
 // classifier, and applies exactly that saved plan (`pulumi up --plan`, `tofu
-// apply <planfile>`). The preview's digest is in the plan the dial or TJ
+// apply <planfile>`). The preview's digest is in the plan the dial or SEB
 // approves, so an approval covers that preview and no other.
 //
 // Pulumi's update plans are experimental (E7). When a preview can't save
@@ -869,7 +869,7 @@ func iacPlanfile(s Step, work string) string {
 
 // iacKeep is how long an unfinished apply's checkout is kept for a resume.
 // The preview and saved plan stay, so the plan still classifies and says
-// what it was; a resume after that can't probe and stops for TJ.
+// what it was; a resume after that can't probe and stops for SEB.
 const iacKeep = 7 * 24 * time.Hour
 
 // pruneIAC removes the checkouts of work directories older than iacKeep.
@@ -946,8 +946,8 @@ func (x *executor) cleanupPlan(p Plan) {
 	}
 }
 
-// iacWaiting is what the shim adds to a plan waiting for TJ when it applies:
+// iacWaiting is what the shim adds to a plan waiting for SEB when it applies:
 // running the same command again previews again, so it makes a new digest.
 func iacWaiting(digest string) string {
-	return fmt.Sprintf("once TJ approves it, run it with: quartermaster plan resume %s (running the apply again previews again, under a new digest)", digest)
+	return fmt.Sprintf("once SEB approves it, run it with: quartermaster plan resume %s (running the apply again previews again, under a new digest)", digest)
 }

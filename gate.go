@@ -16,10 +16,10 @@ import (
 // an infrastructure preview before applying it. It passes only a plan that
 // creates, updates or reads: any delete, any replace, any operation it does
 // not know, a plan that does not parse, and a plan that differs from the
-// change the worker expected all fail. Failing means stop for TJ, unless
+// change the worker expected all fail. Failing means stop for SEB, unless
 // `quartermaster autonomy check <bead> --class N` passes for the class it
 // prints (docs/design/autonomy-dial.md, D3). A plan it can't parse, or one
-// that differs from --expect, gets no class: stop for TJ.
+// that differs from --expect, gets no class: stop for SEB.
 
 // planSafe are the only operations a plan may contain and still pass: Pulumi
 // step ops and OpenTofu actions alike.
@@ -277,14 +277,14 @@ func renderPlanCheck(c PlanCheck) string {
 	fmt.Fprintf(&s, "plan: %s, %s\n", c.Format, orDash(strings.Join(counts, ", ")))
 	switch {
 	case len(c.Problems) > 0:
-		s.WriteString("REFUSED: no class for this plan; stop for TJ\n")
+		s.WriteString("REFUSED: no class for this plan; stop for SEB\n")
 	case c.ok():
 		fmt.Fprintf(&s, "class: %d (%s)\n", c.Class, targetWord(c))
 		s.WriteString("ok: no delete, replace or unknown operation\n")
 		return s.String()
 	default:
 		fmt.Fprintf(&s, "class: %d (%s)\n", c.Class, targetWord(c))
-		fmt.Fprintf(&s, "BLOCKED: go ahead only if `quartermaster autonomy check <bead> --class %d` passes, else stop for TJ (CRITICAL: delete/replace)\n", c.Class)
+		fmt.Fprintf(&s, "BLOCKED: go ahead only if `quartermaster autonomy check <bead> --class %d` passes, else stop for SEB (CRITICAL: delete/replace)\n", c.Class)
 	}
 	for _, p := range c.Problems {
 		fmt.Fprintf(&s, "- %s\n", p)

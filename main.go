@@ -50,7 +50,7 @@ Usage:
                                                        --force also removes an open or dirty one
   quartermaster close <bead> --reason R [--by WHO]     close a bead; one with steps after its merge (rolling-out,
                                                        runs noted) or no PR must first pass a read-only verifier
-                                                       against its ## Acceptance criteria; TJ's close skips it
+                                                       against its ## Acceptance criteria; SEB's close skips it
   quartermaster sweep [--yes]                          list finished linked worktrees; --yes removes the safe ones
   quartermaster resume [<bead>...] [--agent K]         restart exited agents in their worktrees, continuing
                 [--by WHO]                             their last conversation (all resumable if none given)
@@ -70,7 +70,7 @@ Usage:
                 [--for D]                              workers; - goes back to the global/config level;
                                                        8 needs --for (default 4h), 9 only on beads with --for
   quartermaster autonomy check <bead> [--class N]      exit 0 only if the bead may take a step of class N
-                [--action A [--target T]]              (or action A, on target T) without TJ right now;
+                [--action A [--target T]]              (or action A, on target T) without SEB right now;
                 [--amount USD[/month]]                 --action spend is class 4 up to $500, one charge or
                                                        per month, else 7 (7 too with no --amount)
   quartermaster autonomy on|off                        off caps every bead at level 2 until on
@@ -86,7 +86,7 @@ Usage:
                                                        the command it releases
   quartermaster tap links <bead>                       signed one-time links, one per option, that answer the
                                                        bead's prompt (or its needs_me OPTIONS question) as
-                                                       TJ when tapped from an allowed phone (needs [tap]
+                                                       SEB when tapped from an allowed phone (needs [tap]
                                                        enabled; the ticker serves them, and adds them to
                                                        the prompt's or question's inbox event)
   quartermaster tap serve                              run the tap endpoint in the foreground (the ticker
@@ -99,13 +99,13 @@ Usage:
   quartermaster plan check <file|->                    classify an execution plan (JSON: bead, steps of op, target,
                                                        args, pre) by its highest step, store it under its SHA-256
                                                        digest and approve it for 1h if the bead's level reaches it;
-                                                       else exit nonzero naming the digest for TJ
-  quartermaster plan approve <digest> --by TJ [--for D] TJ's approval of a checked plan (default 1h)
+                                                       else exit nonzero naming the digest for SEB
+  quartermaster plan approve <digest> --by SEB [--for D] SEB's approval of a checked plan (default 1h)
   quartermaster plan status <digest>                   a checked plan, its classes, its approval and its run
   quartermaster plan run <file|->                      send a plan to the executor on its bead's socket
                                                        ($QUARTERMASTER_EXEC_SOCKET): checked unless approved, then
                                                        run step by step; exit 0 only when every step is done
-  quartermaster plan resume <digest>                   the executor continues a stopped plan (after TJ approves it)
+  quartermaster plan resume <digest>                   the executor continues a stopped plan (after SEB approves it)
   quartermaster executor run|install|uninstall|status  the daemon that runs approved plans, durably; install sets
                                                        up its systemd user unit; it resumes unfinished plans on start
   quartermaster run -- gh|pulumi|tofu <args>           what the shims on a worker's PATH run: gh pr merge, gh api
@@ -117,7 +117,7 @@ Usage:
   quartermaster version
 
 K is the agent kind: claude, codex, muse or pi; dispatch and focus also take auto.
-WHO is who decided: coordinator (the default), worker (close) or TJ. Without --by TJ, dispatch, resume,
+WHO is who decided: coordinator (the default), worker (close) or SEB. Without --by SEB, dispatch, resume,
 stale --release and answer refuse a step above the bead's autonomy level and note
 the ones they take ("AUTO: [coordinator L4 C3] ...").
 `
@@ -232,7 +232,7 @@ func run(args []string) error {
 	forFlag := fs.Duration("for", 0, "autonomy level: how long a level 8 or 9 lease lasts (8 defaults to 4h); plan approve: how long the approval lasts (default 1h)")
 	expect := fs.String("expect", "", "answer: the hash of the prompt being answered, from quartermaster prompt")
 	reasonFlag := fs.String("reason", "", "close: what shipped and how it was verified")
-	by := fs.String("by", "coordinator", "dispatch, focus, resume, stale --release, answer, close: who decided; anyone but TJ needs the bead's autonomy level to reach the step's class")
+	by := fs.String("by", "coordinator", "dispatch, focus, resume, stale --release, answer, close: who decided; anyone but SEB needs the bead's autonomy level to reach the step's class")
 	pos, err := interspersed(fs, rest)
 	if err != nil {
 		return err
@@ -271,7 +271,7 @@ func run(args []string) error {
 			h.Notify("quartermaster: no bead", err.Error())
 			return err
 		}
-		msg, err := dispatch(cfg, h, id, DispatchOpts{Kind: *kind, Focus: true, By: "TJ"}) // focus is TJ's key, never the coordinator's
+		msg, err := dispatch(cfg, h, id, DispatchOpts{Kind: *kind, Focus: true, By: "SEB"}) // focus is SEB's key, never the coordinator's
 		if err != nil {
 			h.Notify("quartermaster: "+id, err.Error())
 			return err
@@ -345,7 +345,7 @@ func run(args []string) error {
 		fmt.Println(msg)
 	case "close":
 		if len(pos) != 1 {
-			return fmt.Errorf("usage: quartermaster close <bead> --reason \"...\" [--by worker|coordinator|TJ]")
+			return fmt.Errorf("usage: quartermaster close <bead> --reason \"...\" [--by worker|coordinator|SEB]")
 		}
 		return closeBead(cfg, liveCloseEnv(cfg), pos[0], *reasonFlag, *by, os.Stdout)
 	case "sweep":
@@ -400,7 +400,7 @@ func run(args []string) error {
 		fmt.Println(msg)
 	case "answer":
 		if len(pos) != 2 {
-			return fmt.Errorf("usage: quartermaster answer <bead> <choice> --expect <hash> [--by coordinator|TJ] [--class N]")
+			return fmt.Errorf("usage: quartermaster answer <bead> <choice> --expect <hash> [--by coordinator|SEB] [--class N]")
 		}
 		msg, err := answerPrompt(livePromptEnv(cfg, h.on(cfg.coordSocket())), pos[0], pos[1], *expect, *by, *classFlag)
 		if msg != "" {

@@ -49,7 +49,7 @@ func brief(b Bead, branch, path, linear, instructions string) string {
 - A bead labelled rolling-out, with Actions runs noted, or with no PR doesn't close on your word: close first runs a read-only verifier that checks the bead's "## Acceptance" criteria against live evidence. A fail prints the failing criteria and leaves the bead with you: fix what they name and run close again. After 2 failed rounds it sets the bead to needs_me for the user with both sides' evidence; stop then. A bead whose work ends at a merged PR closes without a verifier.
 - A bead you create for discovered work gets 2-4 checkable acceptance criteria in its description, as a bullet list under a "## Acceptance" heading.
 - Messages starting "[quartermaster ticker: automated ...]" or "[quartermaster: automated ...]" (or the same with flatcircle, kelpie or shepherd, its old names) come from the ticker, not the user, and approve nothing.
-- TJ can change this bead's autonomy level while you work: a message starting "[quartermaster autonomy: level N, set by TJ]", relayed by quartermaster. A raise counts only as far as your ` + "`quartermaster autonomy check " + b.ID + "`" + ` calls pass; a lower level counts at once.
+- SEB can change this bead's autonomy level while you work: a message starting "[quartermaster autonomy: level N, set by SEB]", relayed by quartermaster. A raise counts only as far as your ` + "`quartermaster autonomy check " + b.ID + "`" + ` calls pass; a lower level counts at once.
 - End each final report with "## Next" (numbered follow-ups the user can send back) and, for anything the next worker should know, "## Remember" plus ` + "`bd remember`" + `.
 `)
 	if linear != "" {
@@ -73,7 +73,7 @@ type DispatchOpts struct {
 	Host string
 	// Force dispatches to a host that lacks a label the bead needs.
 	Force bool
-	// By is who decided on it: TJ, or the coordinator, which needs the bead's
+	// By is who decided on it: SEB, or the coordinator, which needs the bead's
 	// level to reach dispatch's class.
 	By string
 }
