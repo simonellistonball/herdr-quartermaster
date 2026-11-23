@@ -21,6 +21,9 @@ qm is a short alias: qm context is quartermaster context.
 Usage:
   quartermaster coordinator [--agent K]                open (or focus) the coordinator agent
   quartermaster dispatch <bead> [--agent K] [--focus]  start a worker on a bead in its own worktree
+                [--mcp a,b]                            with these MCP servers beyond the minimum (adds mcp: labels)
+  quartermaster mcp [list [<bead>]]                    MCP servers to choose from; with a bead, what its worker gets
+  quartermaster mcp add|remove <bead> <name>...        set a bead's MCP servers; its worker restarts with them once idle
                 [--host H] [--force] [--by WHO]        on host H (default: the bead's host: label, else
                                                        local); --force ignores the bead's needs: labels
                 [--backend herdr|pi-rpc]               opt in to native pi RPC; no default or live sessions change
@@ -232,6 +235,7 @@ func run(args []string) error {
 	forFlag := fs.Duration("for", 0, "autonomy level: how long a level 8 or 9 lease lasts (8 defaults to 4h); plan approve: how long the approval lasts (default 1h)")
 	expect := fs.String("expect", "", "answer: the hash of the prompt being answered, from quartermaster prompt")
 	reasonFlag := fs.String("reason", "", "close: what shipped and how it was verified")
+	mcpFlag := fs.String("mcp", "", "dispatch: MCP servers the worker needs beyond the minimum, comma-separated (adds mcp:<name> labels)")
 	by := fs.String("by", "coordinator", "dispatch, focus, resume, stale --release, answer, close: who decided; anyone but SEB needs the bead's autonomy level to reach the step's class")
 	pos, err := interspersed(fs, rest)
 	if err != nil {
@@ -245,9 +249,20 @@ func run(args []string) error {
 			return err
 		}
 		fmt.Println(msg)
+	case "mcp":
+		return mcpCmd(cfg, Beads{}, pos, os.Stdout)
 	case "dispatch":
 		if len(pos) != 1 {
-			return fmt.Errorf("usage: quartermaster dispatch <bead> [--agent claude|codex|muse|pi] [--focus] [--host H] [--force]")
+			return fmt.Errorf("usage: quartermaster dispatch <bead> [--agent claude|codex|muse|pi] [--mcp a,b] [--focus] [--host H] [--force]")
+		}
+		if *mcpFlag != "" {
+			b, err := Beads{}.Show(pos[0])
+			if err != nil {
+				return err
+			}
+			if err := setMCPLabels(cfg, Beads{}, b, strings.Split(*mcpFlag, ","), true, os.Stderr); err != nil {
+				return err
+			}
 		}
 		msg, err := dispatch(cfg, h, pos[0], DispatchOpts{Kind: *kind, Backend: *backend, Focus: *focus, Host: *hostFlag, Force: *force, By: *by})
 		if err != nil {

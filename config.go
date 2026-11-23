@@ -95,6 +95,9 @@ type Config struct {
 	// auto_resolve did: the ticker closes and resolves at level 3 and above.
 	Autonomy AutonomyConfig `toml:"autonomy"`
 
+	// MCP chooses each claude session's MCP servers (homelab fork; mcp.go).
+	MCP MCPConfig `toml:"mcp"`
+
 	// Verifier checks in-scope beads before `quartermaster close` closes
 	// them; see accept.go.
 	Verifier VerifierConfig `toml:"verifier"`

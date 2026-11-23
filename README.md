@@ -1027,6 +1027,45 @@ Gitea's API has no rate limit to budget for, but each pass costs one `gt api`
 call per repository listing plus three or four per open PR, so many repos
 with a short `gh_seconds` mean many requests.
 
+## MCP sets (homelab fork)
+
+Every MCP server a Claude session loads costs it context on every request, and
+a session loads all it can find: the user's and the project's servers, every
+installed plugin's, and the claude.ai connectors of the account it runs on (45
+servers and 79 MCP tools in one homelab workspace, against 1 and 1 with
+codegraph alone). With `[mcp] strict`, each claude worker starts with
+`--strict-mcp-config` and only the servers its bead needs:
+
+- `[mcp] default`, the minimum every worker gets (unset: the catalogue's
+  `defaultOn`),
+- `[mcp.repos] <repo>`, for every bead in that repository,
+- one per `mcp:<name>` label on the bead.
+
+```toml
+[mcp]
+strict = true
+catalog = "~/.config/cws/mcp-catalog.json"  # default; {"servers": {...}, "descriptions": {...}, "defaultOn": [...]}
+# default = ["codegraph"]                   # unset: the catalogue's defaultOn
+coordinator = []                            # the coordinator's set; unset: default
+
+[mcp.repos]
+radar = ["playwright"]
+```
+
+The catalogue is that file's servers plus those in `~/.claude.json`: the
+user's, and the bead's repository's own ("local" scope, keyed by its main
+checkout). `quartermaster mcp list [<bead>]` shows them, with what a bead gets.
+The coordinator picks servers at dispatch (`dispatch <bead> --mcp a,b`, or
+`quartermaster mcp add <bead> a b`), and its guide tells it to add only what the
+task needs. A worker that finds it needs another runs `quartermaster mcp add`
+itself; the ticker then relaunches it once idle with `--continue`, keeping its
+conversation, as it does for a launch-mode change. A worker running without
+strict, or with another set than its bead's, is relaunched the same way.
+Dispatch refuses a bead that names a server no catalogue defines. Each
+worker's config is written to `<state dir>/mcp/<agent>.json`, readable by the
+user only, since server definitions can hold tokens. Remote hosts and other
+agent kinds are unaffected.
+
 ## Hourly digest
 
 `quartermaster digest` is a snapshot for clearing through beads: every bead

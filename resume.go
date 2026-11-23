@@ -256,6 +256,11 @@ func resumeOne(cfg Config, h Herdr, r Resumable, kind string) (string, error) {
 	text := fmt.Sprintf("[quartermaster] You were resumed after your agent exited. Run `bd show %s` and continue.", id)
 	_ = h.Run(pane, cfg.agentEnv(kind)+execEnv(id))
 	args := cfg.agentArgs(kind, cfg.launchBypass(r.Bead, localHost), resumeArgs[kind]...)
+	mcpExtra, _, err := cfg.mcpArgs(kind, localHost, r.Bead)
+	if err != nil {
+		return "", err
+	}
+	args = append(args, mcpExtra...)
 	if kind == "pi" {
 		var err error
 		if args, err = cfg.piLaunch(localHost, args, "worker", id); err != nil {

@@ -194,6 +194,13 @@ func dispatch(cfg Config, h Herdr, id string, o DispatchOpts) (string, error) {
 		return "", err
 	}
 	args := cfg.agentArgs(kind, cfg.launchBypass(b, host))
+	// Before the worktree and the claim, so a bead wanting an unknown MCP
+	// server leaves nothing behind.
+	mcpExtra, mcpHave, err := cfg.mcpArgs(kind, host, b)
+	if err != nil {
+		return "", err
+	}
+	args = append(args, mcpExtra...)
 	if kind == "pi" {
 		// Before the worktree and the claim, so a model pi can't run leaves
 		// nothing behind.
@@ -229,6 +236,11 @@ func dispatch(cfg Config, h Herdr, id string, o DispatchOpts) (string, error) {
 	// The brief says how to check the level, so an older notice is moot.
 	_ = os.Remove(noticePath(host, name))
 	text := brief(b, branch, opened.Path, linearKey(b, cfg.LinearPrefixes), readInstructions())
+	if mcpExtra != nil {
+		if cat, err := cfg.mcpCatalogFor(cfg.repoFor(b)); err == nil {
+			text += mcpBrief(id, mcpHave, cat)
+		}
+	}
 	if _, _, ok := giteaRepo(repo); ok {
 		text = giteaCommands(text)
 	}
@@ -402,7 +414,7 @@ func openCoordinator(cfg Config, h Herdr, kind string) (string, error) {
 		return "", err
 	}
 	for _, f := range []string{"AGENTS.md", "CLAUDE.md"} {
-		if err := os.WriteFile(filepath.Join(home, f), []byte(coordinatorGuide(cfg)), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(home, f), []byte(coordinatorGuide(cfg)+mcpGuide(cfg)), 0o644); err != nil {
 			return "", err
 		}
 	}
@@ -413,6 +425,11 @@ func openCoordinator(cfg Config, h Herdr, kind string) (string, error) {
 	_ = tickerStart(cfg)
 	first := "Run `quartermaster context` and give me a short status: what needs me, what's in review, what's ready to start."
 	args := cfg.coordinatorArgs(kind)
+	mcpExtra, err := cfg.coordinatorMCPArgs(kind)
+	if err != nil {
+		return "", err
+	}
+	args = append(args, mcpExtra...)
 	if kind == "pi" {
 		if args, err = cfg.piLaunch(localHost, args, "coordinator", ""); err != nil {
 			return "", err

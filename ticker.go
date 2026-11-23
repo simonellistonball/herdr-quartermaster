@@ -537,6 +537,7 @@ func (t Ticker) once(st *TickerState) error {
 // only this machine's agents, and remote workers never start with bypass.
 func (t Ticker) launchMismatch(threads []Thread) map[string]bool {
 	out := map[string]bool{}
+	cats := mcpCatalogs{}
 	for _, th := range threads {
 		a := th.Agent
 		// A needs_me worker waits on SEB, and typing /exit into it would read as
@@ -545,7 +546,8 @@ func (t Ticker) launchMismatch(threads []Thread) map[string]bool {
 			continue
 		}
 		args := t.cfg.bypassArgs(a.Kind)
-		if len(args) == 0 {
+		checkMCP := t.cfg.MCP.Strict && a.Kind == "claude"
+		if len(args) == 0 && !checkMCP {
 			continue
 		}
 		argv, err := t.herdr.ForegroundArgv(a.PaneID)
@@ -553,8 +555,16 @@ func (t Ticker) launchMismatch(threads []Thread) map[string]bool {
 			t.log.Printf("launch mode of %s: %v", th.Bead.ID, err)
 			continue
 		}
-		if launchedWith(argv, args) != t.cfg.launchBypass(th.Bead, localHost) {
+		if len(args) > 0 && launchedWith(argv, args) != t.cfg.launchBypass(th.Bead, localHost) {
 			out[a.Name] = true
+		}
+		if checkMCP {
+			// Its MCP servers no longer match its bead's (homelab fork).
+			if diff, err := t.cfg.mcpMismatch(th.Bead, argv, cats); err != nil {
+				t.log.Printf("MCP servers of %s: %v", th.Bead.ID, err)
+			} else if diff {
+				out[a.Name] = true
+			}
 		}
 	}
 	return out
@@ -594,7 +604,18 @@ func (t Ticker) relaunch(th Thread, snap *Snapshot, due bool, now time.Time) {
 			return
 		}
 		t.log.Printf("relaunched %s %s bypass args", id, mode)
-		_ = t.beads.Note(id, "quartermaster relaunched the worker "+mode+" its kind's bypass args, to match its autonomy level")
+		note := "quartermaster relaunched the worker " + mode + " its kind's bypass args, to match its autonomy level"
+		if t.cfg.MCP.Strict {
+			if cat, err := t.cfg.mcpCatalogFor(t.cfg.repoFor(th.Bead)); err == nil {
+				want, _ := t.cfg.mcpWant(th.Bead, cat)
+				have := "none"
+				if len(want) > 0 {
+					have = strings.Join(want, ", ")
+				}
+				note += " and its bead's MCP servers (now " + have + ")"
+			}
+		}
+		_ = t.beads.Note(id, note)
 	case due && deliverable(*snap, now, t.cfg.idle()):
 		if err := t.herdr.Prompt(th.Agent.PaneID, "/exit"); err != nil {
 			t.log.Printf("relaunch %s: exit: %v", id, err)
