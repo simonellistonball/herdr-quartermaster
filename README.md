@@ -755,6 +755,44 @@ registry with each host's slots.
 
 `~/.config/quartermaster/instructions.md` is added to every worker's brief.
 
+## Gitea (homelab fork)
+
+This fork also follows PRs and Actions runs on Gitea. A repository whose
+`origin` is on one of `gitea_hosts` is read through Gitea's REST API by way of
+[`gt`](https://gitea.com/gitea/cli) (`gt api`), which must be logged in to each
+host (`gt auth login --host <host>`); every other repository goes through `gh`
+as before, so GitHub and Gitea repos can sit in the same `repos`.
+
+```toml
+gitea_hosts = ["gitea.example.com"]  # default: the host of $GITEA_HOST, if set
+gitea_cli = "gt"                     # default
+```
+
+Bead notes that link `https://<gitea host>/<owner>/<repo>/pulls/<n>` and
+`.../actions/runs/<id>` are followed like GitHub's. Prompts and worker briefs
+for a Gitea repo name `gt` commands (`gt pr checks`, `gt pr view --comments`,
+`gt pr merge --auto --squash`, `gt run view --log`); the two `gh pr merge`
+flags gt lacks become the API calls behind them (`--match-head-commit` is a
+`POST .../pulls/<n>/merge` with `head_commit_id`, `--disable-auto` a
+`DELETE .../pulls/<n>/merge`).
+
+Where Gitea has no equivalent, quartermaster approximates:
+
+- `reviewDecision` and `mergeStateStatus` come from the PR's reviews, its head's
+  combined commit status and the base branch's protection rule (required
+  contexts, which may be globs, and required approvals). A required context
+  that hasn't reported counts as pending, as GitHub's EXPECTED does. `warning`
+  and `skipped` statuses pass.
+- Review threads are review comments grouped by file and line: resolved when
+  any comment in the group is, outdated when Gitea no longer places them.
+- Gitea's scheduled merge (auto-merge) isn't read, so a Gitea PR never reports
+  auto-merge on, and the "auto-merge was turned off" nudge never fires.
+- `verify` (stale-bead checks) stays GitHub-only and skips Gitea PRs and runs.
+
+Gitea's API has no rate limit to budget for, but each pass costs one `gt api`
+call per repository listing plus three or four per open PR, so many repos
+with a short `gh_seconds` mean many requests.
+
 ## Hourly digest
 
 `quartermaster digest` is a snapshot for clearing through beads: every bead

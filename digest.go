@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -660,6 +661,16 @@ func (d Digest) worthNotifying() bool {
 // by URL, in one GraphQL query per digestBatch PRs, the queries in parallel.
 // It also returns how many queries it made.
 func (g GH) DigestPRs(urls []string) (map[string]DigestPR, int, error) {
+	urls, onGitea := splitGitea(urls)
+	gtPRs, gtN, gtErr := giteaDigest(onGitea)
+	prs, n, err := g.githubDigestPRs(urls)
+	for u, pr := range gtPRs {
+		prs[u] = pr
+	}
+	return prs, n + gtN, errors.Join(err, gtErr)
+}
+
+func (g GH) githubDigestPRs(urls []string) (map[string]DigestPR, int, error) {
 	chunks := slices.Collect(slices.Chunk(urls, digestBatch))
 	outs := make([][]byte, len(chunks))
 	errs := make([]error, len(chunks))

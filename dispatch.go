@@ -198,6 +198,9 @@ func dispatch(cfg Config, h Herdr, id string, o DispatchOpts) (string, error) {
 	// The brief says where autonomy stands now, so an older notice is moot.
 	_ = os.Remove(noticePath(host, name))
 	text := brief(b, branch, opened.Path, linearKey(b, cfg.LinearPrefixes), readInstructions(), auto)
+	if _, _, ok := giteaRepo(repo); ok {
+		text = giteaCommands(text)
+	}
 	_ = hh.Run(opened.PaneID, cfg.agentEnvOn(host, kind))
 	where := opened.PaneID + onHost(host)
 	if err := hh.AgentStart(name, kind, opened.PaneID, cfg.agentArgs(kind)...); err != nil {
@@ -289,6 +292,10 @@ func gitWorktreeRemove(repo, path string, force bool) []string {
 }
 
 func merged(repo, branch string) bool {
+	if _, _, ok := giteaRepo(repo); ok {
+		heads, err := GH{repo: repo}.MergedHeads()
+		return err == nil && heads[branch]
+	}
 	out, err := GH{repo: repo}.run("pr", "list", "--head", branch, "--state", "merged", "--json", "number", "--jq", "length")
 	return err == nil && strings.TrimSpace(string(out)) != "0"
 }

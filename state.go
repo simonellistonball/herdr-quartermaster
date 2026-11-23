@@ -57,6 +57,9 @@ type Thread struct {
 	// Prompt is the approval prompt a blocked agent is showing, when the
 	// ticker could read it.
 	Prompt *ApprovalPrompt
+	// Gitea is whether the bead's repository is on Gitea, so its prompts name
+	// gt commands instead of gh's (homelab fork).
+	Gitea bool
 }
 
 func agentReady(a *Agent) bool {
@@ -402,6 +405,11 @@ func transition(t Thread, prev Snapshot, first bool, now time.Time) Outcome {
 	}
 	if t.Agent == nil && prev.AgentStatus != "" {
 		ev(EventAgentGone, "%s's agent exited while the bead is still %s", id, t.Bead.Status)
+	}
+	if t.Gitea {
+		for i, p := range o.Prompts {
+			o.Prompts[i] = giteaCommands(p)
+		}
 	}
 	return o
 }

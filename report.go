@@ -70,6 +70,16 @@ func parseSince(s string, now time.Time) (time.Time, error) {
 
 // MergedSince lists the user's PRs merged at or after since.
 func (g GH) MergedSince(since time.Time) ([]MergedPR, error) {
+	if host, slug, ok := giteaRepo(g.repo); ok {
+		ps, err := Gitea{host}.mine(slug, "closed", 100)
+		var prs []MergedPR
+		for _, p := range ps {
+			if pr := p.pr(); pr.State == "MERGED" && !pr.MergedAt.Before(since) {
+				prs = append(prs, MergedPR{Number: pr.Number, Title: pr.Title, URL: pr.URL, Head: pr.Head, MergedAt: pr.MergedAt})
+			}
+		}
+		return prs, err
+	}
 	out, err := g.run("pr", "list", "--author", "@me", "--state", "merged",
 		"--search", "merged:>="+since.UTC().Format(time.RFC3339),
 		"--json", "number,title,url,mergedAt,headRefName", "--limit", "100")
