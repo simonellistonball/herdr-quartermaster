@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -253,6 +255,10 @@ func (g GH) Login() string {
 
 // Mine lists the user's recent PRs in the repo, newest first.
 func (g GH) Mine() ([]PR, error) {
+	if host, slug, ok := giteaRepo(g.repo); ok {
+		ps, err := Gitea{host}.mine(slug, "all", 100)
+		return giteaPRs(ps), err
+	}
 	out, err := g.run("pr", "list", "--author", "@me", "--state", "all", "--limit", "100", "--json", listFields)
 	if err != nil {
 		return nil, err
@@ -262,6 +268,9 @@ func (g GH) Mine() ([]PR, error) {
 }
 
 func (g GH) View(url string, detail bool) (PR, error) {
+	if gt, slug, n, ok := giteaPRRef(url); ok {
+		return gt.view(slug, n, detail)
+	}
 	fields := listFields
 	if detail {
 		fields = detailFields
@@ -276,6 +285,9 @@ func (g GH) View(url string, detail bool) (PR, error) {
 
 // MarkBotReviews flags pr's bot reviews, which only the REST API marks.
 func (g GH) MarkBotReviews(pr *PR) error {
+	if isGiteaURL(pr.URL) {
+		return nil // Gitea's reviews carry no user type; isBot reads the [bot] suffix
+	}
 	m := prURL.FindStringSubmatch(pr.URL)
 	if len(pr.Reviews) == 0 || m == nil {
 		return nil
@@ -297,6 +309,37 @@ func (g GH) MarkBotReviews(pr *PR) error {
 // Gates fetches the merge gate of every PR in one GraphQL query, keyed by
 // URL. A PR missing from the result has no gate and so is not ready.
 func (g GH) Gates(prs []PR, now time.Time) (map[string]MergeGate, error) {
+	gates, err := giteaGates(prs, now)
+	ghGates, ghErr := g.githubGates(slices.DeleteFunc(slices.Clone(prs), func(pr PR) bool { return isGiteaURL(pr.URL) }), now)
+	for u, gate := range ghGates {
+		gates[u] = gate
+	}
+	return gates, errors.Join(err, ghErr)
+}
+
+// giteaGates is Gates for the Gitea PRs among prs, a few at a time.
+func giteaGates(prs []PR, now time.Time) (map[string]MergeGate, error) {
+	gates := map[string]MergeGate{}
+	var mu sync.Mutex
+	var errs []error
+	eachLimit(len(prs), ghParallel, func(i int) {
+		gt, slug, n, ok := giteaPRRef(prs[i].URL)
+		if !ok {
+			return
+		}
+		gate, err := gt.gate(slug, n, now)
+		mu.Lock()
+		defer mu.Unlock()
+		if err != nil {
+			errs = append(errs, err)
+			return
+		}
+		gates[prs[i].URL] = gate
+	})
+	return gates, errors.Join(errs...)
+}
+
+func (g GH) githubGates(prs []PR, now time.Time) (map[string]MergeGate, error) {
 	var q strings.Builder
 	alias := map[string]string{}
 	for i, pr := range prs {
@@ -326,7 +369,11 @@ const lookupBatch = 50
 // query per lookupBatch PRs, where a gh pr view each would cost a point each.
 // A PR GitHub can't resolve is missing from the result.
 func (g GH) Lookup(urls []string) (map[string]PR, error) {
-	prs := map[string]PR{}
+	urls, onGitea := splitGitea(urls)
+	prs, gtErr := giteaLookup(onGitea)
+	if gtErr != nil && len(urls) == 0 {
+		return prs, gtErr
+	}
 	for chunk := range slices.Chunk(urls, lookupBatch) {
 		var q strings.Builder
 		alias := map[string]string{}
@@ -345,13 +392,21 @@ func (g GH) Lookup(urls []string) (map[string]PR, error) {
 		}
 		out, err := g.graphql("{ " + q.String() + "}")
 		if err != nil {
-			return prs, err
+			return prs, errors.Join(gtErr, err)
 		}
 		if err := parseLookup(out, alias, prs); err != nil {
-			return prs, err
+			return prs, errors.Join(gtErr, err)
 		}
 	}
-	return prs, nil
+	return prs, gtErr
+}
+
+func giteaPRs(ps []giteaPull) []PR {
+	prs := make([]PR, 0, len(ps))
+	for _, p := range ps {
+		prs = append(prs, p.pr())
+	}
+	return prs
 }
 
 // lookupFields are listFields in GraphQL.

@@ -53,6 +53,9 @@ var defaultVerifierCommand = []string{
 	"--allowedTools", strings.Join([]string{
 		"Read", "Grep", "Glob", "WebFetch",
 		"Bash(gh pr view:*)", "Bash(gh pr checks:*)", "Bash(gh pr diff:*)",
+		// The same reads on Gitea (homelab fork); not gt api, which can write.
+		"Bash(gt pr view:*)", "Bash(gt pr checks:*)", "Bash(gt pr diff:*)", "Bash(gt pr list:*)",
+		"Bash(gt run view:*)", "Bash(gt run list:*)", "Bash(gt issue view:*)",
 		"Bash(gh run view:*)", "Bash(gh run list:*)", "Bash(gh release view:*)",
 		"Bash(git log:*)", "Bash(git show:*)", "Bash(git diff:*)", "Bash(git status:*)",
 		"Bash(git rev-parse:*)", "Bash(git ls-files:*)", "Bash(git ls-tree:*)", "Bash(git cat-file:*)",

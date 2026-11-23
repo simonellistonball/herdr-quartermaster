@@ -65,6 +65,9 @@ type Thread struct {
 	// Turn is how a pi worker's last turn ended, read from its session file;
 	// nil for other kinds.
 	Turn *PiTurn
+	// Gitea is whether the bead's repository is on Gitea, so its prompts name
+	// gt commands instead of gh's (homelab fork).
+	Gitea bool
 }
 
 func agentReady(a *Agent) bool {
@@ -604,6 +607,11 @@ func transitionDebounced(t Thread, prev Snapshot, first bool, now time.Time, deb
 	// A relaunch asked it to exit, and the ticker resumes it itself.
 	if t.Agent == nil && prev.AgentStatus != "" && !prev.Relaunch {
 		ev(EventAgentGone, "%s's agent exited while the bead is still %s", id, t.Bead.Status)
+	}
+	if t.Gitea {
+		for i, p := range o.Prompts {
+			o.Prompts[i] = giteaCommands(p)
+		}
 	}
 	return o
 }

@@ -58,6 +58,13 @@ type Config struct {
 	// always talks to it, whichever server's plugin startup launched it.
 	HerdrSocket string `toml:"herdr_socket"`
 
+	// GiteaHosts are hosts followed as Gitea, through gitea_cli's api
+	// command, for repositories whose origin is on one (homelab fork). Empty
+	// takes the host of $GITEA_HOST, when set.
+	GiteaHosts []string `toml:"gitea_hosts"`
+	// GiteaCLI is the Gitea CLI, logged in to every gitea_hosts host; "gt".
+	GiteaCLI string `toml:"gitea_cli"`
+
 	// Repos are named repositories a bead selects with a repo:<name> label;
 	// Repo is the default.
 	Repos map[string]string `toml:"repos"`
@@ -436,6 +443,10 @@ func loadConfig() (Config, error) {
 	for name, path := range cfg.Repos {
 		cfg.Repos[name] = expandHome(path)
 	}
+	if len(cfg.GiteaHosts) == 0 {
+		cfg.GiteaHosts = giteaHostsFromEnv()
+	}
+	setGiteaHosts(cfg.GiteaHosts, cfg.GiteaCLI)
 	if err := cfg.validateHosts(); err != nil {
 		return cfg, err
 	}
@@ -497,6 +508,17 @@ func (c Config) repoFor(b Bead) string {
 
 // allRepos is every repository quartermaster follows, for passes that are not about
 // one bead (PR listing, worktree sweeps).
+// followsGitHub is whether any followed repository is off Gitea, so gh is
+// worth asking for the user's login.
+func (c Config) followsGitHub() bool {
+	for _, r := range c.allRepos() {
+		if _, _, ok := giteaRepo(r); !ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (c Config) allRepos() []string {
 	repos := []string{filepath.Clean(c.Repo)}
 	for _, name := range slices.Sorted(maps.Keys(c.Repos)) {

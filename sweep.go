@@ -79,6 +79,19 @@ func liveSweepEnv(h Herdr) sweepEnv {
 // MergedHeads is the head branch of every merged PR of the user's, in one
 // call: only headRefName, since heavy fields across 300 PRs time out.
 func (g GH) MergedHeads() (map[string]bool, error) {
+	if host, slug, ok := giteaRepo(g.repo); ok {
+		ps, err := Gitea{host}.mine(slug, "closed", 300)
+		if err != nil {
+			return nil, err
+		}
+		heads := map[string]bool{}
+		for _, p := range ps {
+			if p.Merged {
+				heads[p.branch()] = true
+			}
+		}
+		return heads, nil
+	}
 	out, err := g.run("pr", "list", "--author", "@me", "--state", "merged", "--limit", "300", "--json", "headRefName")
 	if err != nil {
 		return nil, err

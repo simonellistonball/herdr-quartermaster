@@ -229,6 +229,9 @@ func dispatch(cfg Config, h Herdr, id string, o DispatchOpts) (string, error) {
 	// The brief says how to check the level, so an older notice is moot.
 	_ = os.Remove(noticePath(host, name))
 	text := brief(b, branch, opened.Path, linearKey(b, cfg.LinearPrefixes), readInstructions())
+	if _, _, ok := giteaRepo(repo); ok {
+		text = giteaCommands(text)
+	}
 	if auto != "" {
 		// The step is done once the worktree is up; a failed brief still leaves
 		// the dispatch on record.
@@ -344,6 +347,10 @@ func gitWorktreeRemove(repo, path string, force bool) []string {
 }
 
 func merged(repo, branch string) bool {
+	if _, _, ok := giteaRepo(repo); ok {
+		heads, err := GH{repo: repo}.MergedHeads()
+		return err == nil && heads[branch]
+	}
 	out, err := GH{repo: repo}.run("pr", "list", "--head", branch, "--state", "merged", "--json", "number", "--jq", "length")
 	return err == nil && strings.TrimSpace(string(out)) != "0"
 }

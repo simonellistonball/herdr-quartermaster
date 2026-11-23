@@ -134,7 +134,7 @@ func liveVerifyEnv(cfg Config, h Herdr) verifyEnv {
 			if m == nil {
 				return Run{}, fmt.Errorf("not a run URL: %s", url)
 			}
-			return gh.RunView(m[1], m[2])
+			return gh.RunView(runRepo(url, m[1]), m[2])
 		},
 		laterPass: gh.LaterPass,
 		close: func(id, reason string) error {
@@ -500,7 +500,7 @@ func verifyGraphQL(urls []string, searches map[string]string) (string, map[strin
 	alias := map[string]string{}
 	for i, u := range urls {
 		m := prURL.FindStringSubmatch(u)
-		if m == nil || slices.Contains(urls[:i], u) {
+		if m == nil || slices.Contains(urls[:i], u) || isGiteaURL(u) {
 			continue
 		}
 		owner, name, _ := strings.Cut(m[1], "/")
@@ -564,6 +564,9 @@ func parseVerify(out []byte, alias map[string]string) (map[string]prRef, map[str
 
 // LaterPass is a successful run of r's workflow that started after r.
 func (g GH) LaterPass(r Run) (Run, bool, error) {
+	if isGiteaURL(r.Repo + "/") {
+		return Run{}, false, nil // verify follows GitHub only
+	}
 	out, err := g.run("run", "list", "-R", r.Repo, "--workflow", r.Workflow, "--status", "success", "--limit", "1", "--json", runFields)
 	if err != nil {
 		return Run{}, false, err

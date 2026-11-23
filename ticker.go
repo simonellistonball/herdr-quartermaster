@@ -29,6 +29,7 @@ type TickerState struct {
 	Noted        map[string]PR         `json:"noted_prs,omitempty"`  // by URL: linked PRs outside the listings, from the last gh pass
 	LastNudge    time.Time             `json:"last_nudge"`
 	Login        string                `json:"login"`
+	GiteaLogins  map[string]string     `json:"gitea_logins,omitempty"` // by host: the user on each Gitea host
 	CoordReady   time.Time             `json:"coord_ready"`
 	CoordSeq     int64                 `json:"coord_seq"`
 	GHFailingFor time.Time             `json:"gh_failing_since"`
@@ -144,13 +145,18 @@ func (t Ticker) gather(st *TickerState, now time.Time) ([]Thread, map[string]Age
 func threadFor(cfg Config, st TickerState, b Bead, byName map[string]Agent) Thread {
 	th := Thread{Bead: b, Linear: linearKey(b, cfg.LinearPrefixes)}
 	th.Level = cfg.beadMark(b)
+	_, _, th.Gitea = giteaRepo(cfg.repoFor(b))
 	if a, ok := byName[agentName(b.ID)]; ok {
 		th.Agent = &a
 	}
 	if pr, ok := st.PRs[b.ID]; ok {
 		th.PR = &pr
 		th.Checks = summarizeChecks(pr.Checks)
-		th.Reviews = reviewsNotBy(pr.Reviews, st.Login)
+		login := st.Login
+		if host, _, ok := giteaURL(pr.URL); ok {
+			login = st.GiteaLogins[host]
+		}
+		th.Reviews = reviewsNotBy(pr.Reviews, login)
 		th.BotReviews = botReviews(pr.Reviews)
 	}
 	th.Merged = st.MergedPRs[b.ID]
@@ -159,8 +165,18 @@ func threadFor(cfg Config, st TickerState, b Bead, byName map[string]Agent) Thre
 }
 
 func (t Ticker) refreshPRs(st *TickerState, active []Bead) {
-	if st.Login == "" {
+	if st.Login == "" && t.cfg.followsGitHub() {
 		st.Login = t.gh.Login()
+	}
+	for _, host := range giteaHosts {
+		if st.GiteaLogins[host] == "" {
+			if l := (Gitea{host}).Login(); l != "" {
+				if st.GiteaLogins == nil {
+					st.GiteaLogins = map[string]string{}
+				}
+				st.GiteaLogins[host] = l
+			}
+		}
 	}
 	mine := map[string][]PR{}
 	st.GHFailingIn = nil

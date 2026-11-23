@@ -42,6 +42,9 @@ func NotedRuns(notes string) []string {
 }
 
 func (g GH) RunView(repo, id string) (Run, error) {
+	if r, ok, err := giteaRunView(repo, id); ok {
+		return r, err
+	}
 	out, err := g.run("run", "view", id, "-R", repo, "--json", runFields)
 	if err != nil {
 		return Run{}, err
@@ -82,11 +85,11 @@ func nextRuns(prev map[string][]Run, active []Bead, view func(repo, id string) (
 			found[i] = old
 			return
 		}
-		r, err := view(m[1], m[2])
+		r, err := view(runRepo(u, m[1]), m[2])
 		switch {
 		case err != nil && strings.Contains(err.Error(), "HTTP 404"):
 			logf("gh run view %s: gone, no longer following it", u)
-			r = Run{Repo: m[1], URL: u}
+			r = Run{Repo: runRepo(u, m[1]), URL: u}
 			if old != nil {
 				r = *old
 			}
