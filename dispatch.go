@@ -190,6 +190,9 @@ func dispatch(cfg Config, h Herdr, id string, o DispatchOpts) (string, error) {
 	if err, ok := unreachable[host]; ok && host != localHost {
 		return "", fmt.Errorf("%s: unreachable: %w", host, err)
 	}
+	if err := cfg.checkSlots(host, listed[host]); err != nil {
+		return "", err
+	}
 	args := cfg.agentArgs(kind, cfg.launchBypass(b, host))
 	if kind == "pi" {
 		// Before the worktree and the claim, so a model pi can't run leaves
