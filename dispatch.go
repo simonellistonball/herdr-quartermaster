@@ -164,6 +164,9 @@ func dispatch(cfg Config, h Herdr, id string, o DispatchOpts) (string, error) {
 	if err, ok := unreachable[host]; ok && host != localHost {
 		return "", fmt.Errorf("%s: unreachable: %w", host, err)
 	}
+	if err := cfg.checkSlots(host, listed[host]); err != nil {
+		return "", err
+	}
 	hh := cfg.herdrOn(h, host)
 	repo, _ := cfg.repoOn(host, b)
 	if host != localHost {
