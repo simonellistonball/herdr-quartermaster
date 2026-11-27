@@ -31,7 +31,7 @@ type detailResult struct {
 }
 
 const (
-	detailDescLines    = 10
+	detailDescLines    = 30
 	detailHistoryLines = 12
 	detailTailLines    = 10
 	detailTimeout      = 5 * time.Second
@@ -222,6 +222,23 @@ func detailLines(r boardRow, d *beadDetail, w int) []styledLine {
 			add(style, indent+l)
 		}
 	}
+	// noteBlock lays notes out one after another, a blank line apart once
+	// any of them runs past a line.
+	noteBlock := func(notes []string, style string) {
+		var laid [][]styledLine
+		apart := false
+		for _, n := range notes {
+			l := richLines(n, "  ", style, w)
+			apart = apart || len(l) > 1
+			laid = append(laid, l)
+		}
+		for i, l := range laid {
+			if apart && i > 0 {
+				add("", "")
+			}
+			out = append(out, l...)
+		}
+	}
 	section := func(name string) {
 		add("", "")
 		para(ansiBold, "", name)
@@ -263,10 +280,8 @@ func detailLines(r boardRow, d *beadDetail, w int) []styledLine {
 	case d.full != nil && strings.TrimSpace(b.Description) == "":
 		add(ansiDim, "  (none)")
 	case d.full != nil:
-		lines := wrap(strings.TrimSpace(b.Description), w-2)
-		for _, l := range lines[:min(len(lines), detailDescLines)] {
-			add("", "  "+l)
-		}
+		lines := richLines(b.Description, "  ", "", w)
+		out = append(out, lines[:min(len(lines), detailDescLines)]...)
 		if more := len(lines) - detailDescLines; more > 0 {
 			para(ansiDim, "  ", fmt.Sprintf("… %d more lines (b shows all)", more))
 		}
@@ -284,9 +299,7 @@ func detailLines(r boardRow, d *beadDetail, w int) []styledLine {
 		if len(notes) == 0 {
 			add(ansiDim, "  (no note says what for)")
 		}
-		for _, n := range notes[len(notes)-shown:] {
-			para("", "  ", n)
-		}
+		noteBlock(notes[len(notes)-shown:], "")
 		if cmd := r.run; cmd != "" {
 			para(ansiRed, "  ", "run: "+cmd+" (p copies)")
 		}
@@ -300,7 +313,7 @@ func detailLines(r boardRow, d *beadDetail, w int) []styledLine {
 		if len(notes) == 0 {
 			add(ansiDim, "  (none)")
 		} else {
-			para("", "  ", notes[len(notes)-1])
+			noteBlock(notes[len(notes)-1:], "")
 		}
 		if cmd := r.run; cmd != "" {
 			para(ansiRed, "  ", "run: "+cmd+" (p copies)")
@@ -309,9 +322,11 @@ func detailLines(r boardRow, d *beadDetail, w int) []styledLine {
 
 	if earlier := notes[:max(0, len(notes)-shown)]; len(earlier) > 0 {
 		section(fmt.Sprintf("History (%d earlier notes, newest first)", len(earlier)))
+		var newest []string
 		for i := len(earlier) - 1; i >= 0 && i >= len(earlier)-detailHistoryLines; i-- {
-			para(ansiDim, "  ", earlier[i])
+			newest = append(newest, earlier[i])
 		}
+		noteBlock(newest, ansiDim)
 		if older := len(earlier) - detailHistoryLines; older > 0 {
 			para(ansiDim, "  ", fmt.Sprintf("… %d older (b shows all)", older))
 		}

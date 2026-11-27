@@ -138,7 +138,7 @@ func testDetailRow() (boardRow, *beadDetail) {
 	r.prs = linkedPRs(st, r.bead)
 	r.moves = []string{"INF-42 → In Review (PR #7 open)"}
 	full := r.bead
-	full.Description = strings.Repeat("A long description line that wraps. ", 40)
+	full.Description = strings.Repeat("A long description line that wraps. ", 80)
 	full.Parent = "backend-ab"
 	full.Labels = []string{"repo:widgets"}
 	d := &beadDetail{
